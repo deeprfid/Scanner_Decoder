@@ -32,7 +32,7 @@ PROJECTS = [
     ("boot",   os.path.join(SCAN, "bootloader", "trunk", "HC32F460JEUABootloader.uvprojx")),
     ("app",    os.path.join(SCAN, "hc32f46_app", "trunk", "firmware_t.uvprojx")),
 ]
-BOOT_LIB = os.path.join(ROOT, "build_boot_lib.py")   # boot 专用 lib（IS_RTOS2=0，无 main.o）
+BOOT_LIB = os.path.join(SCAN, "tools", "build_boot_lib.py")   # boot 专用 lib（IS_RTOS2=0，无 main.o）
 
 
 def get_version():
