@@ -72,7 +72,8 @@ def build_all():
             sys.exit("project missing: " + proj)
         log = os.path.join(SCAN, "_uv4_f460_" + name + ".log")
         print("[build] compiling " + name + " ...")
-        subprocess.run([UV4, "-b", proj, "-j0", "-o", log], cwd=os.path.dirname(proj),
+        # -r: full rebuild（避免增量缓存 main.o 重复链接问题）
+        subprocess.run([UV4, "-r", proj, "-j0", "-o", log], cwd=os.path.dirname(proj),
                        capture_output=True, text=True)
         t = ""
         if os.path.exists(log):
