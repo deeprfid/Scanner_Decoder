@@ -31,12 +31,12 @@ PROJECTS = [
     ("boot",   os.path.join(SCAN, "bootloader", "trunk", "HC32F460JEUABootloader.uvprojx")),
     ("app",    os.path.join(SCAN, "hc32f46_app", "trunk", "firmware_t.uvprojx")),
 ]
-BOOT_LIB = os.path.join(SCAN, "tools", "build_boot_lib.py")   # boot 专用 lib（IS_RTOS2=0，无 main.o）
+# boot 专用 lib（IS_RTOS2=0，无 main.o）已预编译固定于 driver_lib/hc32f46_boot.lib
 
 
 def get_version():
     txt = open(VHDR, encoding="utf-8", errors="replace").read()
-    m = re.search(r"#defines+OTA_FW_VERSIONs+(0x[0-9A-Fa-f]+)", txt)
+    m = re.search(r"#define\s+OTA_FW_VERSION\s+(0x[0-9A-Fa-f]+)", txt)
     if not m:
         sys.exit("OTA_FW_VERSION not found: " + VHDR)
     return int(m.group(1), 16)
@@ -80,13 +80,7 @@ def build_all():
             t = open(log, encoding="utf-8", errors="replace").read()
         if "0 Error(s)" not in t:
             sys.exit("[build] " + name + " failed\n" + t[-800:])
-        # driver 编译完 -> 切宏编 boot 专用 lib（IS_RTOS2=0）
-        if name == "driver":
-            print("[build] compiling boot-specific lib ...")
-            r2 = subprocess.run([sys.executable, BOOT_LIB], cwd=SCAN, capture_output=True, text=True)
-            if r2.returncode != 0:
-                sys.exit("[build] boot lib failed\n" + r2.stdout + r2.stderr)
-    print("[build] all 3 projects + boot lib compiled")
+    print("[build] all 3 projects compiled (libs: driver=h32f46_driver.lib / boot=hc32f46_boot.lib fixed)")
 
 
 def main():
@@ -97,13 +91,16 @@ def main():
     verstr = "0x%08X" % ver
     print("=== F460 release generation  ver=" + verstr + " ===")
 
-    # locate boot hex + app bin
+    # locate boot hex + app hex/bin
     boot_hex = None
     for cand in os.listdir(os.path.join(SCAN, "bootloader", "trunk", "output")):
         if cand.endswith(".hex"):
             boot_hex = os.path.join(SCAN, "bootloader", "trunk", "output", cand)
     if not boot_hex:
         sys.exit("bootloader output .hex not found (compile boot first)")
+    app_hex = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.hex")
+    if not os.path.exists(app_hex):
+        sys.exit("app output Firmware.hex not found (compile app first)")
     if not os.path.exists(APP_BIN):
         sys.exit("app output Firmware.bin not found (compile app first)")
 
@@ -113,10 +110,12 @@ def main():
     pkg    = os.path.join(RELEASE, "fw_" + verstr + "_" + stamp + ".otapkg")
     fwbin  = os.path.join(RELEASE, "FW.BIN")
 
-    # 1) DAP-LINK merged bin (boot@0x0 + app@0x16000)
-    run(["python", MERGE_BIN, boot_hex, APP_BIN, "-o", merged])
-    # 2) upgrade package (HTTP channel, platform=1=F460)
+    # 1) DAP-LINK merged bin (boot@0x0 + app@0x16000, 两个 hex 合并)
+    run(["python", MERGE_BIN, boot_hex, app_hex, "-o", merged])
+    # 2) upgrade package (HTTP channel, platform=1=F460, payload 用 bin)
     run(["python", OTA_PACK, APP_BIN, "--version", verstr, "--platform", "1", "-o", pkg])
+    # 3) FW.BIN fixed name
+    shutil.copyfile(pkg, fwbin)
     # 3) FW.BIN fixed name
     shutil.copyfile(pkg, fwbin)
 

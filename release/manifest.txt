@@ -1,0 +1,11 @@
+F460 firmware release manifest  ver=0x01000000  built=20260901_0250
+
+[LATEST] merged =merged_f460_0x01000000_20260901_0250.bin
+         pkg    =fw_0x01000000_20260901_0250.otapkg
+
+[OK]   pkg header ver 0x01000000  platform=1(F460)
+  [OK]   FW.BIN identical to otapkg
+  FW.BIN  size=319542  sha256=fada92450fc6dbbe5a94dd9338b4a2a45978e6020f8443dad777c7d0e569e58f
+  fw_0x01000000_20260901_0250.otapkg  size=319542  sha256=fada92450fc6dbbe5a94dd9338b4a2a45978e6020f8443dad777c7d0e569e58f
+  merged_f460_0x01000000_20260901_0250.bin  size=412612  sha256=37e2cd854485121baca215e2d66c2c0ea023df6acdfc4454c12dfe46706ac903
+

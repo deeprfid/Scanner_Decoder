@@ -1,6 +1,8 @@
 *** Using Compiler 'V5.06 update 7 (build 960)', folder: 'D:\Keil_v5\ARM\ARMCC\Bin'
 Rebuild target 'Bootloader'
+compiling ota_boot_stub.c...
 assembling startup_hc32f460.s...
+compiling btMsg.c...
 compiling main.c...
 .\user\inc\w25qxx.h(134): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
@@ -11,16 +13,21 @@ user\src\main.c(79): warning:  #111-D: statement is unreachable
 user\src\main.c(29): warning:  #177-D: variable "i"  was declared but never referenced
   	int i;
 user\src\main.c: 4 warnings, 0 errors
-compiling btMsg.c...
 compiling update_by_ftp.c...
 compiling system_hc32f460.c...
-compiling fw_jump_helper.c...
+compiling hc32f46x_efm.c...
+user\src\hc32f46x_efm.c(957): warning:  #223-D: function "printf" declared implicitly
+  		printf("222222222222222222 success\n");
+user\src\hc32f46x_efm.c(963): warning:  #223-D: function "printf" declared implicitly
+  	printf("00000000000000000 start flash_bytes_write\n");
+user\src\hc32f46x_efm.c: 2 warnings, 0 errors
 compiling w25qxx.c...
 .\user\inc\w25qxx.h(134): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
 user\src\w25qxx.c(522): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
 user\src\w25qxx.c: 2 warnings, 0 errors
+compiling fw_jump_helper.c...
 compiling ota_boot_single.c...
 .\user\inc\w25qxx.h(134): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
@@ -28,9 +35,10 @@ user\src\ota_boot_single.c: 1 warning, 0 errors
 linking...
 .\output\Bootloader.axf: Error: L6200E: Symbol __ARM_use_no_argv multiply defined (by main.o and main.o).
 .\output\Bootloader.axf: Error: L6200E: Symbol main multiply defined (by main.o and main.o).
+.\output\Bootloader.axf: Error: L6200E: Symbol udp_tag_update multiply defined (by common.o and ota_boot_stub.o).
 Not enough information to list image symbols.
 Not enough information to list load addresses in the image map.
-Finished: 2 information, 0 warning and 2 error messages.
-".\output\Bootloader.axf" - 2 Error(s), 7 Warning(s).
+Finished: 2 information, 0 warning and 3 error messages.
+".\output\Bootloader.axf" - 3 Error(s), 9 Warning(s).
 Target not created.
-Build Time Elapsed:  00:00:01
+Build Time Elapsed:  00:00:00

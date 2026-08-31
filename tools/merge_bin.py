@@ -11,7 +11,7 @@ merge_bin.py — 直接合并多个 Intel HEX 为连续 .bin（空隙填 0xFF，
   python merge_bin.py boot.hex app.hex -o merged.bin
   python merge_bin.py --list boot.hex app.hex
 """
-import argparse, binascii, hashlib, struct, sys
+import argparse, binascii, hashlib, re, struct, sys
 
 
 def ep():
@@ -23,11 +23,12 @@ def hex2segs(path):
     """Intel HEX -> {addr: bytearray} 分段字典"""
     segs = {}
     base = 0
-    for ln, line in enumerate(open(path, "r"), 1):
+    for ln, line in enumerate(open(path, "r", encoding="ascii", errors="ignore"), 1):
         line = line.strip()
         if not line or line[0] != ':':
             continue
-        b = binascii.unhexlify(line[1:])
+        data = re.sub(r'[^0-9A-Fa-f]', '', line[1:])   # 过滤非 hex（换行/BOM 残留）
+        b = binascii.unhexlify(data)
         if len(b) < 5:
             raise SystemExit(f"{path}:{ln}: bad record")
         reclen, recaddr, rectype = b[0], struct.unpack(">H", b[1:3])[0], b[3]
