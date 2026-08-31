@@ -32,6 +32,7 @@ PROJECTS = [
     ("boot",   os.path.join(SCAN, "bootloader", "trunk", "HC32F460JEUABootloader.uvprojx")),
     ("app",    os.path.join(SCAN, "hc32f46_app", "trunk", "firmware_t.uvprojx")),
 ]
+BOOT_LIB = os.path.join(ROOT, "build_boot_lib.py")   # boot 专用 lib（IS_RTOS2=0，无 main.o）
 
 
 def get_version():
@@ -80,7 +81,13 @@ def build_all():
             t = open(log, encoding="utf-8", errors="replace").read()
         if "0 Error(s)" not in t:
             sys.exit("[build] " + name + " failed\n" + t[-800:])
-    print("[build] all 3 projects compiled")
+        # driver 编译完 -> 切宏编 boot 专用 lib（IS_RTOS2=0）
+        if name == "driver":
+            print("[build] compiling boot-specific lib ...")
+            r2 = subprocess.run([sys.executable, BOOT_LIB], cwd=SCAN, capture_output=True, text=True)
+            if r2.returncode != 0:
+                sys.exit("[build] boot lib failed\n" + r2.stdout + r2.stderr)
+    print("[build] all 3 projects + boot lib compiled")
 
 
 def main():
