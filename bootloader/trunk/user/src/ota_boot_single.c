@@ -14,7 +14,7 @@
  */
 #include <string.h>
 #include "hc32f46_driver.h"
-#include "hc32f46x_efm.h"
+#include "hc32f460_efm.h"
 #include "fw_jump_helper.h"   /* run_app, gPageBuffer */
 #include "ota_boot_single.h"
 

@@ -75,15 +75,15 @@ int main(void)
 	InitDegutPrintf(2, COMMON_INTERFACE_SOCKET2, "192.168.1.44", 9999);
 #endif
 	
-	if (getBtParams(&btparams) < 0)	/* OTA single-bak: NEED_COMMIT/NEED_CONFIRM 处理（返回 1 已 run_app/复位） */
+	/* OTA single-bak: 优先处理 NEED_COMMIT/NEED_CONFIRM（返回 1 已 run_app/复位） */
 	if (ota_boot_single_run() != 0)
 		return 0;
 
+	if (getBtParams(&btparams) < 0)
 	{
 		TRACE("verify params failed\n");
 		goto loop;
-	}
-	else
+	}	else
 	{
 		dumpBtParams(&btparams);
 		if (btparams.updateflag == 0)
