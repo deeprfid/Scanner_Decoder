@@ -469,6 +469,11 @@
               <FileType>1</FileType>
               <FilePath>.\user\src\ota_agent.c</FilePath>
             </File>
+            <File>
+              <FileName>ota_server.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_server.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

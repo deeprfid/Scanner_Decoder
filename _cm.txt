@@ -1,0 +1,12 @@
+feat(ota): F460 HTTP OTA 集成（第二波）—— ota_server 监听 + 启动链
+
+- 新增 ota_server.c/.h：独立 OTA HTTP 监听线程（SOCKET2, listenPort+1 端口）
+  - 用 apt_single_select_nob 非阻塞 select（不阻塞业务）
+  - 收到连接 -> http_handle_conn（流式收 POST 整包 -> 写 QSPI -> 验签 -> mark_ready -> reset）
+  - 独立于业务 httpServer（2048B 缓冲装不下固件包）
+- user_main.c 启动链：
+  - wait_fin_init 后: ota_agent_boot()（检查待确认）+ ota_server_start()（起监听）
+  - gIsFinInit=1 后: ota_agent_confirm()（新固件自检确认，防回滚）
+- uvprojx: ota_server.c 加入 user 组
+
+注：user_main.c 为 GBK 编码，用 python(gb18030+surrogateescape) 安全修改并保留原字节

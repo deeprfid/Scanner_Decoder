@@ -13,6 +13,8 @@
 #include "ErrChecker.h"
 #include "event_mq.h"
 #include "ipc.h"
+#include "ota_agent.h"   /* OTA: startup check + confirm */
+#include "ota_server.h"  /* OTA: HTTP listen thread */
 /*****************************************************************************
 *ç§»æ?è?´æ˜
 1ï¼šdriverlib: ä¿?æ”¹GPIO_Configuration()ï¼Œæ›¿æ?pio.cé‡Œè¾¹GPIOçš„è?¾ç½®ï¼Œå…³é—­wiegand_init();åˆå?‹åŒ–
@@ -362,6 +364,7 @@ void user_main_active(void)
 
 	get_left_heap_size("after OpenReader");
 	gIsFinInit = 1;
+	ota_agent_confirm();  /* OTA: new fw self-check ok */
 
 	if (gRdrErr != MT_OK_ERR)
 	{
@@ -641,6 +644,8 @@ void user_main(void)
 	int ispassive = 1;
 
 	wait_fin_init();
+	ota_agent_boot();      /* OTA: check pending confirm */
+	ota_server_start();   /* OTA: HTTP listen thread (listenPort+1) */
 	brdcst_conf_init(getMaxSocketId());
 	gCurWorkMode = TestFwType_ex();
 	mp_init(JsonParseMemSize);
