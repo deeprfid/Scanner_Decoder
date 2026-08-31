@@ -439,6 +439,36 @@
               <FileType>1</FileType>
               <FilePath>.\user\src\ipc.c</FilePath>
             </File>
+            <File>
+              <FileName>ota_frame.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_frame.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_security.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_security.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_state.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_storage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_storage.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_http.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_http.c</FilePath>
+            </File>
+            <File>
+              <FileName>ota_agent.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_agent.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -585,7 +615,7 @@
                   <RVCTZI>0</RVCTZI>
                   <RVCTOtherData>0</RVCTOtherData>
                   <ModuleSelection>0</ModuleSelection>
-                  <IncludeInBuild>0</IncludeInBuild>
+                  <IncludeInBuild>2</IncludeInBuild>
                   <AlwaysBuild>2</AlwaysBuild>
                   <GenerateAssemblyFile>2</GenerateAssemblyFile>
                   <AssembleAssemblyFile>2</AssembleAssemblyFile>

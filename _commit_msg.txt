@@ -1,0 +1,14 @@
+feat(ota): F460 App 侧 OTA 模块移植（HTTP-only，第一波）
+
+- 移植 F4A0 同构 OTA 核心到 hc32f46_app/user（src+inc）：
+  - ota_frame.c/.h: OTA1 帧 + CRC16 查表（纯逻辑，原样拷）
+  - ota_security.c/.h: HMAC-SHA256 验签（mbedtls），QSPI 读改 w25qxx
+  - ota_storage.c/.h: QSPI 暂存读写/擦 + 通道互斥（commit 归 boot single-bak）
+  - ota_state.c/.h: 升级状态 QSPI 扇区直存（替代 FlashDB，magic+crc 掉电安全）
+  - ota_http.c/.h: 设备 HTTP 服务器收 POST 整包（浏览器兼容 Content-Length）
+  - ota_agent.c/.h: 收包完成->校验->mark_ready->reset（裁剪 ota_download）
+  - ota_layout.h: F460 布局常量（QSPI 暂存0x000000 备份0x080000 状态0xF00000 + OTA_FW_VERSION 0x01000000）
+- uvprojx: 6 个 OTA .c 加入 user 组；w25qxx.c IncludeInBuild 0->2 启用编译
+- 依赖确认：mbedTLS 2.28.0 已启用（RTE Security）；w25qxx.c 完整（QSPI 驱动）
+
+状态：代码就位待编译验证；httpServer 路由 /ota + boot single-bak 下一波
