@@ -1,0 +1,535 @@
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include "TagBuffer.h"
+#include "rtx_os.h"
+#include "type.h"
+//#include "hc32f46_driver.h"
+#ifdef _DEBUG
+#define TRACE printf
+#else
+#define TRACE(out, ...)   
+#endif
+unsigned short GetNumU16(uint8 *p);
+unsigned int GetNumU32(uint8 *p);
+void SetNumU16(uint8 *p, uint16 num);
+void SetNumU32(uint8 *p, uint32 num);
+void init_mem_sta(void);
+void *malloc_hexp(unsigned int size);
+void *calloc_hexp(unsigned int num, unsigned int size);
+void free_hexp(void *p);
+void add_new_mem_sta(int size);
+int get_left_heap_size(char *prefix);
+
+osMutexId_t tb_BufMux;
+osRtxMutex_t gTb_BufMux_cb;
+
+//#define MaxTagBytesBufferLen (1024*8)
+
+int tb_IsRecHighestRssi = 0;
+int tb_IsUniByAnt = 0;
+int tb_IsUniByEmdData = 0;
+int tb_IsUseMutex = 1;
+unsigned char *tb_pTags;
+unsigned int tb_ReadIndex;
+unsigned int tb_PeekIndex;
+volatile unsigned int tb_WriteIndex;
+volatile unsigned int tb_MaxTagCount;
+int tb_ItemLen;
+unsigned short *tb_pTagIndexHeaders;
+
+void tb_MutexLock()
+{
+	if (tb_IsUseMutex == 1)
+		osMutexAcquire(tb_BufMux, osWaitForever);
+}
+void tb_MutexUnlock()
+{
+	if (tb_IsUseMutex == 1)
+		osMutexRelease(tb_BufMux);
+}
+
+void dumpHeaderIndexs(void)
+{
+	int i;
+	printf("dumpHeaderIndexs: ");
+	for (i = 0; i < tb_MaxTagCount; ++i)
+		printf("%04X ", tb_pTagIndexHeaders[i]);
+	printf("\n");
+		
+}
+
+
+unsigned char auchCRCHi[]=
+{
+	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+	0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
+	0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01,
+	0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41,
+	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81,
+	0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0,
+	0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01,
+	0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+	0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
+	0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01,
+	0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+	0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+	0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
+	0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01,
+	0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+	0x40
+};
+
+unsigned char auchCRCLo[] =
+{
+	0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2, 0xC6, 0x06, 0x07, 0xC7, 0x05, 0xC5, 0xC4,
+	0x04, 0xCC, 0x0C, 0x0D, 0xCD, 0x0F, 0xCF, 0xCE, 0x0E, 0x0A, 0xCA, 0xCB, 0x0B, 0xC9, 0x09,
+	0x08, 0xC8, 0xD8, 0x18, 0x19, 0xD9, 0x1B, 0xDB, 0xDA, 0x1A, 0x1E, 0xDE, 0xDF, 0x1F, 0xDD,
+	0x1D, 0x1C, 0xDC, 0x14, 0xD4, 0xD5, 0x15, 0xD7, 0x17, 0x16, 0xD6, 0xD2, 0x12, 0x13, 0xD3,
+	0x11, 0xD1, 0xD0, 0x10, 0xF0, 0x30, 0x31, 0xF1, 0x33, 0xF3, 0xF2, 0x32, 0x36, 0xF6, 0xF7,
+	0x37, 0xF5, 0x35, 0x34, 0xF4, 0x3C, 0xFC, 0xFD, 0x3D, 0xFF, 0x3F, 0x3E, 0xFE, 0xFA, 0x3A,
+	0x3B, 0xFB, 0x39, 0xF9, 0xF8, 0x38, 0x28, 0xE8, 0xE9, 0x29, 0xEB, 0x2B, 0x2A, 0xEA, 0xEE,
+	0x2E, 0x2F, 0xEF, 0x2D, 0xED, 0xEC, 0x2C, 0xE4, 0x24, 0x25, 0xE5, 0x27, 0xE7, 0xE6, 0x26,
+	0x22, 0xE2, 0xE3, 0x23, 0xE1, 0x21, 0x20, 0xE0, 0xA0, 0x60, 0x61, 0xA1, 0x63, 0xA3, 0xA2,
+	0x62, 0x66, 0xA6, 0xA7, 0x67, 0xA5, 0x65, 0x64, 0xA4, 0x6C, 0xAC, 0xAD, 0x6D, 0xAF, 0x6F,
+	0x6E, 0xAE, 0xAA, 0x6A, 0x6B, 0xAB, 0x69, 0xA9, 0xA8, 0x68, 0x78, 0xB8, 0xB9, 0x79, 0xBB,
+	0x7B, 0x7A, 0xBA, 0xBE, 0x7E, 0x7F, 0xBF, 0x7D, 0xBD, 0xBC, 0x7C, 0xB4, 0x74, 0x75, 0xB5,
+	0x77, 0xB7, 0xB6, 0x76, 0x72, 0xB2, 0xB3, 0x73, 0xB1, 0x71, 0x70, 0xB0, 0x50, 0x90, 0x91,
+	0x51, 0x93, 0x53, 0x52, 0x92, 0x96, 0x56, 0x57, 0x97, 0x55, 0x95, 0x94, 0x54, 0x9C, 0x5C,
+	0x5D, 0x9D, 0x5F, 0x9F, 0x9E, 0x5E, 0x5A, 0x9A, 0x9B, 0x5B, 0x99, 0x59, 0x58, 0x98, 0x88,
+	0x48, 0x49, 0x89, 0x4B, 0x8B, 0x8A, 0x4A, 0x4E, 0x8E, 0x8F, 0x4F, 0x8D, 0x4D, 0x4C, 0x8C,
+	0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42, 0x43, 0x83, 0x41, 0x81, 0x80,
+	0x40
+};
+
+int tagCmp(int cmpindex, TAGINFO *tag)
+{
+	int start = cmpindex*tb_ItemLen;
+//	if (tb_pTags[start+6] != tag->Epclen)
+	if (tb_pTags[start+21] != tag->Epclen)
+		return 1;
+//	if (memcmp(tb_pTags+start+7, tag->EpcId, tag->Epclen) != 0)
+	if (memcmp(tb_pTags+start+22, tag->EpcId, tag->Epclen) != 0)
+		return 1;
+	if (tb_IsUniByAnt == 1)
+	{
+		if (tb_pTags[start+2] != tag->AntennaID)
+			return 1;
+	}
+	if (tb_IsUniByEmdData == 1)
+	{
+//		if (tb_pTags[start+7+tag->Epclen] != tag->EmbededDatalen)
+		if (tb_pTags[start+22+tag->Epclen] != tag->EmbededDatalen)
+			return 1;
+		if (memcmp(tb_pTags+start+23+tag->Epclen, tag->EmbededData, tag->EmbededDatalen) != 0)
+			return 1;
+	}
+	return 0;
+}
+
+unsigned short crc_item(int start)
+{
+	unsigned char uchCRCHi=0xff;
+	unsigned char uchCRCLo=0xff;
+	int  i;
+	unsigned char uindex;
+
+//	for (i = 0; i < tb_pTags[start+6]; ++i)
+	for (i = 0; i < tb_pTags[start+21]; ++i)
+	{
+//		uindex=uchCRCHi^tb_pTags[start+7+i];
+		uindex=uchCRCHi^tb_pTags[start+22+i];
+		uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+		uchCRCLo=auchCRCLo[uindex];
+	}
+	if (tb_IsUniByAnt == 1)
+	{
+		uindex=uchCRCHi^tb_pTags[start+2];
+		uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+		uchCRCLo=auchCRCLo[uindex];
+	}
+	if (tb_IsUniByEmdData == 1)
+	{
+//		int embpos = start+7+tb_pTags[start+6];
+		int embpos = start+22+tb_pTags[start+21];
+		for (i = 0; i < tb_pTags[embpos]; ++i)
+		{
+			uindex=uchCRCHi^tb_pTags[embpos+1+i];
+			uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+			uchCRCLo=auchCRCLo[uindex];
+		}
+	}
+//	printf("crc_item:%d\n", (unsigned short)(uchCRCHi<<8|uchCRCLo));
+	return (uchCRCHi<<8|uchCRCLo);
+}
+
+unsigned short crc16(TAGINFO *tag)
+{
+	unsigned char uchCRCHi=0xff;
+	unsigned char uchCRCLo=0xff;
+	int  i;
+	unsigned char uindex;
+	for (i = 0; i < tag->Epclen; ++i)
+	{
+		uindex=uchCRCHi^tag->EpcId[i];
+		uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+		uchCRCLo=auchCRCLo[uindex];
+	}
+	if (tb_IsUniByAnt == 1)
+	{
+		uindex=uchCRCHi^tag->AntennaID;
+		uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+		uchCRCLo=auchCRCLo[uindex];
+	}
+	if (tb_IsUniByEmdData == 1)
+	{
+		for (i = 0; i < tag->EmbededDatalen; ++i)
+		{
+			uindex=uchCRCHi^tag->EmbededData[i];
+			uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+			uchCRCLo=auchCRCLo[uindex];
+		}
+	}
+//	printf("crc16:%d\n", (unsigned short)(uchCRCHi<<8|uchCRCLo));
+	return (uchCRCHi<<8|uchCRCLo);
+}
+
+void buildTbBuffer(int datalen, unsigned char *buf, int msize)
+{
+	int i;
+	osMutexAttr_t mux_attr = {
+	  NULL,
+	  osMutexRecursive | osMutexPrioInherit,
+	  &gTb_BufMux_cb,
+	  sizeof(gTb_BufMux_cb)
+	};
+	
+	tb_BufMux = osMutexNew(&mux_attr);
+	tb_pTags = buf;
+//	tb_ItemLen = 8+datalen;
+	tb_ItemLen = 23+datalen;
+	tb_MaxTagCount = msize / tb_ItemLen;
+	tb_pTagIndexHeaders = (unsigned short *)malloc_hexp(sizeof(unsigned short)*tb_MaxTagCount);
+	TRACE("tb_MaxTagCount:%d,tb_pTags:%p,tb_pTagIndexHeaders:%p\n", tb_MaxTagCount, tb_pTags, tb_pTagIndexHeaders);
+	tb_ReadIndex = 0;
+	tb_PeekIndex = 0;
+	tb_WriteIndex = 0;
+	tb_IsRecHighestRssi = 0;
+	tb_IsUniByAnt = 0;
+	tb_IsUniByEmdData = 0;
+	for (i = 0; i < tb_MaxTagCount; ++i)
+		tb_pTagIndexHeaders[i] = 0xffff;
+}
+
+void initTbBuffer(int datalen, int msize)
+{
+	int i;
+	osMutexAttr_t mux_attr = {
+	  NULL,
+	  osMutexRecursive | osMutexPrioInherit,
+	  &gTb_BufMux_cb,
+	  sizeof(gTb_BufMux_cb)
+	};
+	
+	tb_BufMux = osMutexNew(&mux_attr);
+	tb_pTags = malloc_hexp(msize);
+//	tb_ItemLen = 8+datalen;
+	tb_ItemLen = 23+datalen;
+	tb_MaxTagCount = msize / tb_ItemLen;
+	tb_pTagIndexHeaders = (unsigned short *)malloc_hexp(sizeof(unsigned short)*tb_MaxTagCount);
+	TRACE("tb_MaxTagCount:%d,tb_pTags:%p,tb_pTagIndexHeaders:%p\n", 
+		tb_MaxTagCount, tb_pTags, tb_pTagIndexHeaders);
+	tb_ReadIndex = 0;
+	tb_PeekIndex = 0;
+	tb_WriteIndex = 0;
+	tb_IsRecHighestRssi = 0;
+	tb_IsUniByAnt = 0;
+	tb_IsUniByEmdData = 0;
+	for (i = 0; i < tb_MaxTagCount; ++i)
+		tb_pTagIndexHeaders[i] = 0xffff;
+
+}
+
+void tagUpdate(int modifyindex, TAGINFO *tag)
+{
+	int pos = 2;
+	int start = modifyindex*tb_ItemLen;
+
+	tb_pTags[start+pos++] = tag->AntennaID;
+	tb_pTags[start+pos++] += tag->ReadCnt;
+	if (tb_IsRecHighestRssi == 1)
+	{
+		if (tag->RSSI > ((signed char)tb_pTags[start+pos]))
+			tb_pTags[start+pos++] = (unsigned char)tag->RSSI;
+		else
+			pos++;
+	}
+	else
+		tb_pTags[start+pos++] = (unsigned char)tag->RSSI;
+	/////////// add 20230227
+	tb_pTags[start+pos++] = tag->protocol;
+	tb_pTags[start+pos++] = (tag->Frequency >> 16) & 0xff;
+	tb_pTags[start+pos++] = (tag->Frequency >> 8) & 0xff;
+	tb_pTags[start+pos++] = tag->Frequency & 0xff;
+	pos += 4;
+	SetNumU32(tb_pTags+start+pos, tag->TimeStamp);
+	pos += 4;
+	memcpy(tb_pTags+start+pos, tag->Res, 2);
+	pos += 2;
+	memcpy(tb_pTags+start+pos, tag->CRC, 2);
+	pos += 2;
+	///////////
+	tb_pTags[start+pos++] = tag->Epclen;
+	memcpy(tb_pTags+start+pos, tag->EpcId, tag->Epclen);
+	pos += tag->Epclen;
+	tb_pTags[start+pos++] = tag->EmbededDatalen;
+	memcpy(tb_pTags+start+pos, tag->EmbededData, tag->EmbededDatalen);
+}
+
+int FindTagIndexItem(TAGINFO *tag, int crcindex, int* stgindex)
+{
+	*stgindex = tb_pTagIndexHeaders[crcindex];
+	if (*stgindex == 0xffff)
+		return 0;
+	else
+	{
+		int isfind = 0;
+		int start;
+		int endflag;
+		while (1)
+		{
+			if (tagCmp(*stgindex, tag) == 0)
+			{
+				isfind = 1;
+				break;
+			}
+			start = (*stgindex)*tb_ItemLen;
+			endflag = (tb_pTags[start] << 8) | tb_pTags[start+1];
+			if (endflag == 0xffff)
+				break;
+			*stgindex = endflag;
+		}
+		if (isfind == 1)
+			return 2;
+		else
+			return 1;
+	}
+}
+
+
+void setRecHighestRssi(int is_)
+{
+	tb_IsRecHighestRssi = is_;
+}
+void setUniByAnt(int is_)
+{
+	tb_IsUniByAnt = is_;
+}
+void setUniByEmdData(int is_)
+{
+	tb_IsUniByEmdData = is_;
+}
+
+void setIsUseMutex(int is_)
+{
+	tb_IsUseMutex = is_;
+}
+void tagClear(void)
+{
+	int i;
+	tb_MutexLock();
+	tb_ReadIndex = 0;
+	tb_PeekIndex = 0;
+	tb_WriteIndex = 0;
+	for (i = 0; i < tb_MaxTagCount; ++i)
+		tb_pTagIndexHeaders[i] = (unsigned short)0xffff;
+	tb_MutexUnlock();
+}
+
+int tagInsert(TAGINFO *tag)
+{
+	unsigned short crc_;
+	int crcindex;
+	int windex;
+	int indexret;
+	int stgindex;
+	int ret = 0;
+	
+	tb_MutexLock();
+//	dumpHeaderIndexs();
+	if (tb_WriteIndex - tb_ReadIndex == tb_MaxTagCount)
+	{
+		tb_MutexUnlock();
+		return -1;
+	}
+
+	crc_ = crc16(tag);	
+	crcindex = crc_ % tb_MaxTagCount;
+	windex = tb_WriteIndex % tb_MaxTagCount;
+
+	indexret = FindTagIndexItem(tag, crcindex, &stgindex);
+	if (indexret == 0 || indexret == 1)
+	{
+		int pos = 2;
+
+		int start = windex*tb_ItemLen;
+		tb_pTags[start+pos++] = tag->AntennaID;
+		tb_pTags[start+pos++] = tag->ReadCnt;
+		tb_pTags[start+pos++] = (unsigned char)tag->RSSI;
+		tb_pTags[start+pos++] = tag->protocol;
+//// add 20230227
+		tb_pTags[start+pos++] = (tag->Frequency >> 16) & 0xff;
+		tb_pTags[start+pos++] = (tag->Frequency >> 8) & 0xff;
+		tb_pTags[start+pos++] = tag->Frequency & 0xff;
+		SetNumU32(tb_pTags+start+pos, tag->TimeStamp);
+		pos += 4;
+		SetNumU32(tb_pTags+start+pos, tag->TimeStamp);
+		pos += 4;
+		memcpy(tb_pTags+start+pos, tag->Res, 2);
+		pos += 2;
+		memcpy(tb_pTags+start+pos, tag->CRC, 2);
+		pos += 2;
+////
+		tb_pTags[start+pos++] = tag->Epclen;
+		memcpy(tb_pTags+start+pos, tag->EpcId, tag->Epclen);
+		pos += tag->Epclen;
+		tb_pTags[start+pos++] = tag->EmbededDatalen;
+		memcpy(tb_pTags+start+pos, tag->EmbededData, tag->EmbededDatalen);
+
+		tb_pTags[start] = 0xff;
+		tb_pTags[start+1] = 0xff;
+		if (indexret == 0)
+			tb_pTagIndexHeaders[crcindex] = windex;
+		else
+		{
+			int tmpstart = stgindex*tb_ItemLen;
+			tb_pTags[tmpstart] = (windex >> 8) & 0xff;
+			tb_pTags[tmpstart+1] = (windex >> 0) & 0xff;
+		}
+		tb_WriteIndex++;
+	}
+	else
+	{
+		tagUpdate(stgindex, tag);
+		ret = 1;
+	}
+
+	tb_MutexUnlock();
+	return ret;
+}
+
+int tagGetCnt(void)
+{
+	int tagcnt;
+	tb_MutexLock();
+	tagcnt = tb_WriteIndex - tb_ReadIndex;
+	tb_MutexUnlock();
+	return tagcnt;
+}
+
+int tagPeekNext(TAGINFO *tag)
+{
+	int start;
+	int pos = 2;
+
+	tb_MutexLock();
+	if (tb_WriteIndex - tb_PeekIndex == 0)
+	{
+		tb_MutexUnlock();
+		return -1;
+	}
+	start = (tb_PeekIndex % tb_MaxTagCount)*tb_ItemLen;
+	tag->AntennaID = tb_pTags[start+pos++];
+	tag->ReadCnt = tb_pTags[start+pos++];
+	tag->RSSI = (signed char)tb_pTags[start+pos++];
+	tag->protocol = (SL_TagProtocol)tb_pTags[start+pos++];
+	/////////// add 20230227
+	tag->Frequency = (tb_pTags[start+pos] << 16) | 
+		(tb_pTags[start+pos+1] << 8) | tb_pTags[start+pos+2];
+	pos += 3;
+	tag->TimeStamp = GetNumU32(tb_pTags+start+pos);
+	pos += 4;
+	tag->Phase = GetNumU32(tb_pTags+start+pos);
+	pos += 4;
+	memcpy(tag->Res, tb_pTags+start+pos, 2);
+	pos += 2;
+	memcpy(tag->CRC, tb_pTags+start+pos, 2);
+	pos += 2;
+	///////////
+	tag->Epclen = tb_pTags[start+pos++];
+	memcpy(tag->EpcId, tb_pTags+start+pos, tag->Epclen);
+	pos += tag->Epclen;
+	tag->EmbededDatalen = tb_pTags[start+pos++];
+	memcpy(tag->EmbededData, tb_pTags+start+pos, tag->EmbededDatalen);
+	tb_PeekIndex++;
+	tb_MutexUnlock();
+	return 0;
+}
+
+int tagGetNext(TAGINFO *tag)
+{
+	int start;
+	int pos = 2;
+	int crcindex;
+
+	tb_MutexLock();
+	if (tb_WriteIndex - tb_ReadIndex == 0)
+	{
+		tb_MutexUnlock();
+		return -1;
+	}
+	start = (tb_ReadIndex % tb_MaxTagCount)*tb_ItemLen;
+	tag->AntennaID = tb_pTags[start+pos++];
+	tag->ReadCnt = tb_pTags[start+pos++];
+	tag->RSSI = (signed char)tb_pTags[start+pos++];
+	tag->protocol = (SL_TagProtocol)tb_pTags[start+pos++];
+	/////////// add 20230227
+	tag->Frequency = (tb_pTags[start+pos] << 16) | 
+		(tb_pTags[start+pos+1] << 8) | tb_pTags[start+pos+2];
+	pos += 3;
+	tag->TimeStamp = GetNumU32(tb_pTags+start+pos);
+	pos += 4;
+	tag->Phase = GetNumU32(tb_pTags+start+pos);
+	pos += 4;
+	memcpy(tag->Res, tb_pTags+start+pos, 2);
+	pos += 2;
+	memcpy(tag->CRC, tb_pTags+start+pos, 2);
+	pos += 2;
+	///////////
+	tag->Epclen = tb_pTags[start+pos++];
+	memcpy(tag->EpcId, tb_pTags+start+pos, tag->Epclen);
+	pos += tag->Epclen;
+	tag->EmbededDatalen = tb_pTags[start+pos++];
+	memcpy(tag->EmbededData, tb_pTags+start+pos, tag->EmbededDatalen);
+	tb_ReadIndex++;
+
+	crcindex = crc_item(start) % tb_MaxTagCount;
+
+	tb_pTagIndexHeaders[crcindex] = (tb_pTags[start] << 8) | tb_pTags[start+1];
+	if (tb_WriteIndex == tb_ReadIndex)
+	{
+		tb_WriteIndex = 0;
+		tb_ReadIndex = 0;
+	}
+	tb_MutexUnlock();
+	return 0;
+}
+
+unsigned short crc_Msg(unsigned char *msg, int len)
+{
+	unsigned char uchCRCHi=0xff;
+	unsigned char uchCRCLo=0xff;
+	int  i;
+	unsigned char uindex;
+
+	for (i = 0; i < len; ++i)
+	{
+		uindex=uchCRCHi^msg[i];
+		uchCRCHi=uchCRCLo^auchCRCHi[uindex];
+		uchCRCLo=auchCRCLo[uindex];
+	}
+//	printf("crc_item:%d\n", (unsigned short)(uchCRCHi<<8|uchCRCLo));
+	return (uchCRCHi<<8|uchCRCLo);
+}

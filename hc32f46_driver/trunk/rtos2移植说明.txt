@@ -1,0 +1,2 @@
+1，注释掉hc32f46x_interrupts.c文件中三个中断函数PendSV_Handler，SysTick_Handler，SVC_Handler的定义
+2，修改system_hc32f46x.c文件中的SystemInit函数，设置中断向量表SCB->VTOR = 0x0000A000; （0x0000A000为固件文件的烧录地址）

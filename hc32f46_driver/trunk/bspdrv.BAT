@@ -1,0 +1,43 @@
+SET PATH=d:\Keil_v5\ARM\ARMCC\Bin;C:\Program Files (x86)\VMware\VMware Workstation\bin\;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;D:\Program Files\TortoiseSVN\bin;C:\Program Files (x86)\IDM Computer Solutions\UltraCompare;C:\Users\10341\AppData\Local\Microsoft\WindowsApps;C:\Users\10341\.dotnet\tools
+SET CPU_TYPE=HC32F460JEUA
+SET CPU_VENDOR=HDSC
+SET UV2_TARGET=bspdrv
+SET CPU_CLOCK=0x00B71B00
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\system_hc32f46x.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmAsm" --Via ".\output\startup_hc32f46x._ia"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\flash.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\common.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\irq.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\pio.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\sysinit.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\uart.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\timer.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\readercfg.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\io_stream.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\os_dep.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\main.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_clk.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_gpio.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_interrupts.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_pwc.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_usart.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_timera.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_utility.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_sram.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_swdt.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_spi.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_dmac.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\hc32f46x_icg.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\socket.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\wizchip_conf.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\w5100s.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\port.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\rtx_lib.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\rtx_config.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\dhcp.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\dns.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\ftpc.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmCC" --Via ".\output\retarget_io.__i"
+"d:\Keil_v5\ARM\ARMCC\Bin\ArmAr" --Via ".\output\ArInp.Scr"
+xcopy .\output\hc32f46_driver.lib  ..\driver_lib /Y
+xcopy .\hc32f46_driver.h  ..\driver_lib /Y

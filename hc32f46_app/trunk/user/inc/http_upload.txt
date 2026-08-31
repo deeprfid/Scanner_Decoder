@@ -1,0 +1,124 @@
+int http_upload(int fd, uint8 *SBuffer, int dlen)
+{
+	int err = 0;
+	char headerbuf[150];
+	int totrecv = 0;
+	
+	if (gIsHttps == 1 && gHttpsHandShakeFin == 0)
+	{
+		while (1)
+		{
+			if (gRtSetting->upload.hw_inf == Upload_Inf_Wifi)
+				wlan_reconn_ser();
+			else if (gRtSetting->upload.hw_inf == Upload_Inf_4G)
+			{
+			}
+			else if (gRtSetting->upload.hw_inf == Upload_Inf_Ethernet)
+			{
+//				disconnect(fd);
+				close(fd);
+				CheckServerConnection();
+			}
+			
+			init_mbedtls();
+			if (https_handshake() == 0)
+			{
+				gHttpsHandShakeFin = 1;
+				break;
+			}
+			deinit_mbedtls();
+			sleep_ms(2000);
+		}
+	}
+
+	sprintf(headerbuf, "POST %s HTTP/1.1\r\n", 
+		gRtSetting->upload.sw_potl_params.http.url+gAbsPathpos);
+	HTTP_SEND(fd, headerbuf, strlen(headerbuf));
+	sprintf(headerbuf, "Host: %s\r\n", gHostName);
+	HTTP_SEND(fd, headerbuf, strlen(headerbuf));
+	sprintf(headerbuf, "Accept: */*\r\n");
+	HTTP_SEND(fd, headerbuf, strlen(headerbuf));
+	sprintf(headerbuf, "Content-Type: application/json; charset=utf-8\r\n");
+	HTTP_SEND(fd, headerbuf, strlen(headerbuf));
+	sprintf(headerbuf, "Content-Length:%d\r\n\r\n", dlen);
+	HTTP_SEND(fd, headerbuf, strlen(headerbuf));
+	HTTP_SEND(fd, SBuffer, dlen);
+	gHttpParseErr = 0;
+	gIsFinHttpParse = 0;
+	gHttpRespBodyLen = 0;
+	http_parser_init(gPHttpParser, HTTP_RESPONSE);
+	
+	while (1)
+	{
+		int nrecv;
+		int nparsed;
+		if (gIsHttps == 0)
+			nrecv = read(fd, SockRecvBuffer, CmdRecvBufLen);		
+		else
+		{
+			nrecv = mbedtls_ssl_read(g_ssl_context, SockRecvBuffer, CmdRecvBufLen);
+			if (nrecv == MBEDTLS_ERR_SSL_WANT_READ || nrecv == MBEDTLS_ERR_SSL_WANT_WRITE) {
+				printf("nrecv == MBEDTLS_ERR_SSL_WANT_READ\n");
+				continue;
+			}
+			else if (nrecv == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+				printf("nrecv == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY\n");
+				err = -1;
+				goto FIN;
+			}
+		}
+		
+		if (nrecv <= 0)
+		{
+			err = -1;
+			goto FIN;
+		}
+//		printf("++++++++++++++++++++++++++ nrecv:%d\n", nrecv);		
+//		printf("recvstr:%s\n", m_httpmsgbuffer);
+
+		memcpy(httprespdumpbuf+totrecv, SockRecvBuffer, nrecv);
+		totrecv += nrecv;
+		SockRecvBuffer[nrecv] = 0;
+		nparsed = http_parser_execute(gPHttpParser, gPHttpParseSet, 
+			(char *)SockRecvBuffer, nrecv);
+		if (nparsed != nrecv)
+		{
+			printf("nparsed != nrecv err:%d\n", gPHttpParser->http_errno);
+			sleep_ms(2000);
+			httprespdumpbuf[totrecv] = 0;
+			printf("httprespdumpbuf:%s\n", httprespdumpbuf);
+			ioctl(fd, COMMON_INTERFACE_CLEAR_REVBUF, NULL);
+			err = -1;
+			goto FIN;
+		}
+		if (gPHttpParser->http_errno != HPE_OK)
+		{
+			printf("htParser.http_errno != HPE_OK\n");
+			sleep_ms(2000);
+			httprespdumpbuf[totrecv] = 0;
+			printf("httprespdumpbuf:%s\n", httprespdumpbuf);
+			ioctl(fd, COMMON_INTERFACE_CLEAR_REVBUF, NULL);
+			err = -1;
+			goto FIN;			
+		}
+
+		if (gIsFinHttpParse == 1)
+		{
+//			printf("if (gIsFinHttpParse == 1)\n");
+			if (gHttpParseErr == 0 && gHttpRespBodyLen >0)
+				printf("totrecv:%d, resp body:%s\n", totrecv, gHttpRespJsonBuf);
+			httprespdumpbuf[totrecv] = 0;
+//			printf("httprespdumpbuf:%s\n", httprespdumpbuf);
+			break;
+		}
+	}
+
+FIN:
+	if (err != 0 && gIsHttps == 1)
+	{
+//		mbedtls_ssl_session_reset(&ssl);
+		deinit_mbedtls();
+		gHttpsHandShakeFin = 0;
+	}
+	return err;
+}

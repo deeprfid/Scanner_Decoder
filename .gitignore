@@ -1,0 +1,26 @@
+# Keil MDK build output
+**/output/
+**/Objects/
+**/Listings/
+**/obj/
+*.o
+*.axf
+*.htm
+*.build_log.htm
+
+# backup / temp
+*.bak
+*_bak*/
+**/新建文件夹/
+
+# IDE / ENV
+*.uvguix.*
+*.scvd
+DebugConfig/
+
+# SVN leftovers
+.svn/
+
+# misc
+*.pdb
+Thumbs.db
