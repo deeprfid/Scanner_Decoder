@@ -30,8 +30,9 @@ def main():
     print("[boot-lib] IS_RTOS2_SUPPORT=0, ENABLE_ICG_TABLE=1")
     # 2) 编译 driver
     log = os.path.join(SCAN, "_uv4_bootlib.log")
-    subprocess.run([UV4, "-r", PROJ, "-j0", "-o", log], cwd=os.path.dirname(PROJ),
+    rc = subprocess.run([UV4, "-r", PROJ, "-j0", "-o", log], cwd=os.path.dirname(PROJ),
                    capture_output=True, text=True)
+    print("[boot-lib] UV4 rc=" + str(rc.returncode) + " log=" + log)
     t = open(log, encoding="utf-8", errors="replace").read() if os.path.exists(log) else ""
     if "0 Error(s)" not in t:
         # 恢复宏再退出

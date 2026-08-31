@@ -14,23 +14,24 @@ user\src\main.c: 4 warnings, 0 errors
 compiling btMsg.c...
 compiling update_by_ftp.c...
 compiling system_hc32f460.c...
-compiling fw_jump_helper.c...
 compiling w25qxx.c...
 .\user\inc\w25qxx.h(134): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
 user\src\w25qxx.c(522): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
 user\src\w25qxx.c: 2 warnings, 0 errors
+compiling fw_jump_helper.c...
 compiling ota_boot_single.c...
 .\user\inc\w25qxx.h(134): warning:  #1-D: last line of file ends without a newline
    ******************************************************************************/
 user\src\ota_boot_single.c: 1 warning, 0 errors
 linking...
-.\output\Bootloader.axf: Error: L6200E: Symbol __ARM_use_no_argv multiply defined (by main.o and main.o).
-.\output\Bootloader.axf: Error: L6200E: Symbol main multiply defined (by main.o and main.o).
+.\output\Bootloader.axf: Error: L6218E: Undefined symbol EFM_SingleProgram (referred from ota_boot_single.o).
+.\output\Bootloader.axf: Error: L6218E: Undefined symbol udp_tag_update (referred from io_stream.o).
+.\output\Bootloader.axf: Error: L6218E: Undefined symbol Erase_eastag_to_flash (referred from irq.o).
 Not enough information to list image symbols.
 Not enough information to list load addresses in the image map.
-Finished: 2 information, 0 warning and 2 error messages.
-".\output\Bootloader.axf" - 2 Error(s), 7 Warning(s).
+Finished: 2 information, 0 warning and 3 error messages.
+".\output\Bootloader.axf" - 3 Error(s), 7 Warning(s).
 Target not created.
-Build Time Elapsed:  00:00:01
+Build Time Elapsed:  00:00:00

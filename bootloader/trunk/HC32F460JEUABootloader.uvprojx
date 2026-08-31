@@ -429,6 +429,16 @@
               <FilePath>.\user\src\ota_boot_single.c</FilePath>
             </File>
             <File>
+              <FileName>ota_boot_stub.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\ota_boot_stub.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f46x_efm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\hc32f46x_efm.c</FilePath>
+            </File>
+            <File>
               <FileName>w25qxx.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\src\w25qxx.c</FilePath>
