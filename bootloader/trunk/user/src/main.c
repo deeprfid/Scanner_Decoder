@@ -5,6 +5,8 @@
 #include "hc32f46_driver.h"
 #include "fw_jump_helper.h"
 #include "update_by_ftp.h"
+#include "w25qxx.h"          /* OTA: QSPI flash */
+#include "ota_boot_single.h"   /* OTA: single-bak commit */
 //#include "mp_pool.h"
 #include "app_conf.h"
 //0x1FFF8000
@@ -47,6 +49,7 @@ int main(void)
 	
 	heap_base_address += 64 - heap_base_address %64;
 	_init_alloc(heap_base_address, 0x20026FF0);
+	W25QXX_Init();             /* OTA: QSPI flash init */
 
 //	InitDegutPrintf(1, COMMON_INTERFACE_SOCKET2, "192.168.1.44", 9999);
 	printf("u32ICG[0]:%d\n", u32ICG[0]);
@@ -72,7 +75,10 @@ int main(void)
 	InitDegutPrintf(2, COMMON_INTERFACE_SOCKET2, "192.168.1.44", 9999);
 #endif
 	
-	if (getBtParams(&btparams) < 0)
+	if (getBtParams(&btparams) < 0)	/* OTA single-bak: NEED_COMMIT/NEED_CONFIRM 处理（返回 1 已 run_app/复位） */
+	if (ota_boot_single_run() != 0)
+		return 0;
+
 	{
 		TRACE("verify params failed\n");
 		goto loop;
