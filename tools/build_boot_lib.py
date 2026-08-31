@@ -43,9 +43,15 @@ def main():
         sys.exit("[boot-lib] output lib not found: " + OUT)
     shutil.copyfile(OUT, DEST)
     print("[boot-lib] saved -> " + DEST)
-    # 4) 恢复 App 配置
+    # 4) 恢复 App 配置并重编 App lib（driver_lib/hc32f46_driver.lib 需含 main）
     set_macros(1, 0)
-    print("[boot-lib] macros restored (IS_RTOS2_SUPPORT=1)")
+    log2 = os.path.join(SCAN, "_uv4_applib.log")
+    subprocess.run([UV4, "-r", PROJ, "-j0", "-o", log2], cwd=os.path.dirname(PROJ),
+                   capture_output=True, text=True)
+    t2 = open(log2, encoding="utf-8", errors="replace").read() if os.path.exists(log2) else ""
+    if "0 Error(s)" not in t2:
+        sys.exit("[boot-lib] app-lib rebuild failed\n" + t2[-800:])
+    print("[boot-lib] macros restored + app lib rebuilt (IS_RTOS2_SUPPORT=1)")
 
 if __name__ == "__main__":
     main()
