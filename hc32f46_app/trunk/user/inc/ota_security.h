@@ -33,3 +33,5 @@ int ota_security_verify_ex(ota_sec_read_fn read, void *arg);
 int ota_security_verify_staged(void);
 
 #endif /* OTA_SECURITY_H */
+
+

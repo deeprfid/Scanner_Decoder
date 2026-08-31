@@ -49,3 +49,5 @@ void ota_boot_count_inc(void);
 void ota_boot_count_clear(void);
 
 #endif /* OTA_STATE_H */
+
+
