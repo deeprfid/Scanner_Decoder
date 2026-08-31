@@ -16,14 +16,13 @@ Outputs to Scanner_20260901/release/ (timestamped):
 Version source: OTA_FW_VERSION in hc32f46_app/trunk/user/inc/ota_layout.h
 """
 import os, re, sys, hashlib, subprocess, shutil, datetime
-
 SCAN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # Scanner_20260901/
-MAIN_TOOLS = os.path.join(os.path.dirname(SCAN), "tools")            # 主仓库 tools/（merge_bin/ota_pack）
 APP_BIN   = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.bin")
 VHDR      = os.path.join(SCAN, "hc32f46_app", "trunk", "user", "inc", "ota_layout.h")
 RELEASE   = os.path.join(SCAN, "release")
-MERGE_BIN = os.path.join(MAIN_TOOLS, "merge_bin.py")
-OTA_PACK  = os.path.join(MAIN_TOOLS, "ota_pack.py")
+TOOLS     = os.path.join(SCAN, "tools")                    # 本工程 tools（完全独立，不依赖主仓库）
+MERGE_BIN = os.path.join(TOOLS, "merge_bin.py")
+OTA_PACK  = os.path.join(TOOLS, "ota_pack.py")
 
 # UV4 one-click build (set env KEIL_UV4 to override)
 UV4 = os.environ.get("KEIL_UV4", r"D:\Keil_v5\UV4\UV4.exe")

@@ -33,4 +33,4 @@ Not enough information to list load addresses in the image map.
 Finished: 2 information, 0 warning and 2 error messages.
 ".\output\Bootloader.axf" - 2 Error(s), 7 Warning(s).
 Target not created.
-Build Time Elapsed:  00:00:00
+Build Time Elapsed:  00:00:01
