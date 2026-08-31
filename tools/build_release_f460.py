@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+build_release_f460.py - F460 scanner one-click firmware release generation
+
+Usage (after the KEIL projects are compiled):
+    python tools/build_release_f460.py
+    python tools/build_release_f460.py --build    (also compiles driver/boot/app via UV4)
+
+Outputs to Scanner_20260901/release/ (timestamped):
+    merged_f460_<ver>_<YYYYMMDD_HHMM>.bin    DAP-LINK/J-Link flash (boot@0x0 + app@0x16000)
+    fw_<ver>_<YYYYMMDD_HHMM>.otapkg          HTTP channel upgrade package (platform=1=F460)
+    FW.BIN                                   fixed-name binary (byte-identical to pkg)
+    manifest.txt                             version/time/size/SHA256
+
+Version source: OTA_FW_VERSION in hc32f46_app/trunk/user/inc/ota_layout.h
+"""
+import os, re, sys, hashlib, subprocess, shutil, datetime
+
+SCAN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # Scanner_20260901/
+MAIN_TOOLS = os.path.join(os.path.dirname(SCAN), "tools")            # 主仓库 tools/（merge_bin/ota_pack）
+APP_BIN   = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.bin")
+VHDR      = os.path.join(SCAN, "hc32f46_app", "trunk", "user", "inc", "ota_layout.h")
+RELEASE   = os.path.join(SCAN, "release")
+MERGE_BIN = os.path.join(MAIN_TOOLS, "merge_bin.py")
+OTA_PACK  = os.path.join(MAIN_TOOLS, "ota_pack.py")
+
+# UV4 one-click build (set env KEIL_UV4 to override)
+UV4 = os.environ.get("KEIL_UV4", r"D:\Keil_v5\UV4\UV4.exe")
+PROJECTS = [
+    ("driver", os.path.join(SCAN, "hc32f46_driver", "trunk", "hc32f46_driver.uvprojx")),
+    ("boot",   os.path.join(SCAN, "bootloader", "trunk", "HC32F460JEUABootloader.uvprojx")),
+    ("app",    os.path.join(SCAN, "hc32f46_app", "trunk", "firmware_t.uvprojx")),
+]
+
+
+def get_version():
+    txt = open(VHDR, encoding="utf-8", errors="replace").read()
+    m = re.search(r"#defines+OTA_FW_VERSIONs+(0x[0-9A-Fa-f]+)", txt)
+    if not m:
+        sys.exit("OTA_FW_VERSION not found: " + VHDR)
+    return int(m.group(1), 16)
+
+
+def run(cmd):
+    r = subprocess.run(cmd, cwd=SCAN, capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit("command failed: " + " ".join(cmd) + "\n" + r.stdout + r.stderr)
+    return r.stdout
+
+
+def sha256(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for blk in iter(lambda: f.read(65536), b""):
+            h.update(blk)
+    return h.hexdigest()
+
+
+def pkg_version(p):
+    b = open(p, "rb").read(8)
+    if len(b) >= 8 and b[0:4] == b"OTA1":
+        return int.from_bytes(b[4:8], "little")
+    return None
+
+
+def build_all():
+    if not os.path.exists(UV4):
+        sys.exit("UV4.exe not found: " + UV4 + " (set env KEIL_UV4)")
+    for name, proj in PROJECTS:
+        if not os.path.exists(proj):
+            sys.exit("project missing: " + proj)
+        log = os.path.join(SCAN, "_uv4_f460_" + name + ".log")
+        print("[build] compiling " + name + " ...")
+        subprocess.run([UV4, "-b", proj, "-j0", "-o", log], cwd=os.path.dirname(proj),
+                       capture_output=True, text=True)
+        t = ""
+        if os.path.exists(log):
+            t = open(log, encoding="utf-8", errors="replace").read()
+        if "0 Error(s)" not in t:
+            sys.exit("[build] " + name + " failed\n" + t[-800:])
+    print("[build] all 3 projects compiled")
+
+
+def main():
+    if "--build" in sys.argv:
+        build_all()
+
+    ver = get_version()
+    verstr = "0x%08X" % ver
+    print("=== F460 release generation  ver=" + verstr + " ===")
+
+    # locate boot hex + app bin
+    boot_hex = None
+    for cand in os.listdir(os.path.join(SCAN, "bootloader", "trunk", "output")):
+        if cand.endswith(".hex"):
+            boot_hex = os.path.join(SCAN, "bootloader", "trunk", "output", cand)
+    if not boot_hex:
+        sys.exit("bootloader output .hex not found (compile boot first)")
+    if not os.path.exists(APP_BIN):
+        sys.exit("app output Firmware.bin not found (compile app first)")
+
+    os.makedirs(RELEASE, exist_ok=True)
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    merged = os.path.join(RELEASE, "merged_f460_" + verstr + "_" + stamp + ".bin")
+    pkg    = os.path.join(RELEASE, "fw_" + verstr + "_" + stamp + ".otapkg")
+    fwbin  = os.path.join(RELEASE, "FW.BIN")
+
+    # 1) DAP-LINK merged bin (boot@0x0 + app@0x16000)
+    run(["python", MERGE_BIN, boot_hex, APP_BIN, "-o", merged])
+    # 2) upgrade package (HTTP channel, platform=1=F460)
+    run(["python", OTA_PACK, APP_BIN, "--version", verstr, "--platform", "1", "-o", pkg])
+    # 3) FW.BIN fixed name
+    shutil.copyfile(pkg, fwbin)
+
+    # 4) verify + manifest
+    lines = ["F460 firmware release manifest  ver=" + verstr + "  built=" + stamp, ""]
+    lines.append("[LATEST] merged =" + os.path.basename(merged))
+    lines.append("         pkg    =" + os.path.basename(pkg))
+    lines.append("")
+    ok = True
+    pv = pkg_version(pkg)
+    if pv != ver:
+        ok = False
+        lines.append("[FAIL] pkg header ver %#010x != expected %#010x" % (pv, ver))
+    else:
+        lines.append("[OK]   pkg header ver %#010x  platform=1(F460)" % ver)
+    same = os.path.getsize(pkg) == os.path.getsize(fwbin) and open(pkg, "rb").read() == open(fwbin, "rb").read()
+    lines.append("  [OK]   FW.BIN identical to otapkg" if same else "  [FAIL] FW.BIN differs")
+    if not same:
+        ok = False
+    for f in sorted(os.listdir(RELEASE)):
+        if f.startswith("merged_f460") or f.endswith(".otapkg") or f == "FW.BIN":
+            p = os.path.join(RELEASE, f)
+            lines.append("  " + f + "  size=" + str(os.path.getsize(p)) + "  sha256=" + sha256(p))
+    lines.append("")
+    open(os.path.join(RELEASE, "manifest.txt"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    print("\n".join(lines))
+    if not ok:
+        sys.exit("!! verification failed")
+    print("\nall generated -> " + RELEASE)
+
+
+if __name__ == "__main__":
+    main()
