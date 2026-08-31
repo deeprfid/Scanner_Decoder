@@ -1,0 +1,9 @@
+fix(boot): boot 工程去共享 lib 改自包含（解决 main.o 冲突）
+
+- 根因：hc32f46_driver.lib 含 main.o（App 用 IS_RTOS2_SUPPORT=1 编译），boot 链接它 + 自己编译 main.c -> main 重复定义
+- 项目构建说明确认：boot 需 IS_RTOS2_SUPPORT=0 的 lib（不含 main），app 需 =1（含 main）——同一 lib 文件无法同时满足
+- 方案：boot 不再链接 hc32f46_driver.lib，改为直接编译 hc32f46x_efm.c + hc32f46x_icg.c（磁盘已有源码）+ w25qxx.c 等自包含
+- uvprojx: 移除 lib 条目，加入 hc32f46x_efm.c + hc32f46x_icg.c
+- 另：driver 工程 main.c 的 IncludeInBuild 误改已撤销（App 依赖 lib 的 main 入口）
+
+待验证：boot 自包含后是否缺 lib 里的其他符号（串口/网络等），若缺需逐个补源码

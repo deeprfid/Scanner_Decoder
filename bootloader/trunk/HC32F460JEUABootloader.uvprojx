@@ -434,15 +434,21 @@
               <FilePath>.\user\src\w25qxx.c</FilePath>
             </File>
             <File>
+              <FileName>hc32f46x_efm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\hc32f46x_efm.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f46x_icg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\hc32f46x_icg.c</FilePath>
+            </File>
+            <File>
               <FileName>app_conf.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\user\inc\app_conf.h</FilePath>
             </File>
-            <File>
-              <FileName>hc32f46_driver.lib</FileName>
-              <FileType>4</FileType>
-              <FilePath>..\..\driver_lib\hc32f46_driver.lib</FilePath>
-            </File>
+            
             <File>
               <FileName>update_by_ftp.h</FileName>
               <FileType>5</FileType>

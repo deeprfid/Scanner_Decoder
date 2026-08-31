@@ -437,6 +437,7 @@
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\src\main.c</FilePath>
+              
             </File>
             <File>
               <FileName>readercfg.h</FileName>
