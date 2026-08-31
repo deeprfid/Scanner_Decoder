@@ -1,9 +1,0 @@
-feat(ota): F460 boot+app 全链路编译通过（main.o 冲突解决 + ota_server 补齐）
-
-- boot main.o 冲突（hc32f46_driver.lib 含 main）解决：
-  - 采用构建说明机制：boot 用 IS_RTOS2_SUPPORT=0 的专用 lib（hc32f46_boot.lib，无 main.o）
-  - build_boot_lib.py：切宏->编 boot lib->恢复宏->重编 App lib
-  - 新增 ota_boot_stub.c：stub udp_tag_update / Erase_eastag_to_flash（lib 里 io_stream/irq 的 App 符号引用）
-  - boot 工程加 hc32f46x_efm.c（EFM_SingleProgram 驱动，lib 不含）
-- App 编译通过（ota_server.c 补回 uvprojx）
-- 结果：Boot 0E (Code 25.8KB) / App 0E (Code 302KB)，hex 均生成
