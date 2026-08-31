@@ -1,0 +1,8 @@
+fix(ota): 恢复 App uvprojx ota_server.c（Keil 覆盖丢失）+ boot efm include + F460 一键构建脚本
+
+- firmware_t.uvprojx: 重新加入 ota_server.c（Keil 打开工程覆盖丢过 2 次，已补回并提交固化）
+- ota_boot_single.c: include 顺序修复——先 hc32_ddl.h 加载 CMSIS/__IO（否则 hc32f460.h 的 MR 字段报 expected identifier）
+- 新增 tools/build_release_f460.py: F460 一键构建/打包
+  - --build 编译 driver/boot/app（UV4）
+  - 产物: merged_f460_<ver>_<stamp>.bin（boot@0x0+app@0x16000）、fw_<ver>_<stamp>.otapkg（platform=1=F460）、FW.BIN、manifest.txt
+  - 版本源: OTA_FW_VERSION（ota_layout.h）
