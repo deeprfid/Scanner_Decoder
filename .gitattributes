@@ -1,0 +1,5 @@
+# Normalize line endings
+* text=auto
+
+# boot w25qxx.c 原本 LF（与 git 库一致），保持 LF
+bootloader/trunk/user/src/w25qxx.c text eol=lf
