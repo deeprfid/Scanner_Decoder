@@ -14,6 +14,7 @@
 #include "event_mq.h"
 #include "ipc.h"
 #include "w25qxx.h"      /* OTA: QSPI flash */
+#include "hc32f460_qspi.h" /* QSPI direct comm API */
 #include "ota_agent.h"   /* OTA: startup check + confirm */
 #include "ota_server.h"  /* OTA: HTTP listen thread */
 /*****************************************************************************
@@ -665,14 +666,15 @@ static void qspi_self_test(void)
         TRACE("[qspi] diag SR=0x%02X JEDEC=0x%06X (expect 0xEF4017)\n", (unsigned)sr, (unsigned)j);
     }
     if (id == W25Q64) {
-    W25QXX_Erase_Sector(0x007FF000UL);
-    W25QXX_Wait_Busy();
-    for (i = 0; i < 64; i++) wbuf[i] = (uint8_t)i;
-    W25QXX_Write(wbuf, 0x007FF000UL, 64);
-    W25QXX_Wait_Busy();
-    W25QXX_Read(rbuf, 0x007FF000UL, 64);
-    ok = (memcmp(wbuf, rbuf, 64) == 0);
-    TRACE("[qspi] self-test %s (write/read 64B @0x7FF000)\n", ok ? "OK" : "FAIL");
+        W25QXX_Erase_Sector(0x007FF000UL);
+        W25QXX_Wait_Busy();
+        for (i = 0; i < 64; i++) wbuf[i] = (uint8_t)i;
+        W25QXX_Write(wbuf, 0x007FF000UL, 64);
+        W25QXX_Wait_Busy();
+        W25QXX_Read(rbuf, 0x007FF000UL, 64);
+        ok = (memcmp(wbuf, rbuf, 64) == 0);
+        TRACE("[qspi] self-test %s (write/read 64B @0x7FF000)\n", ok ? "OK" : "FAIL");
+    }
 }
 
 void user_main(void)
