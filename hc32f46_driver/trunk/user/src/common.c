@@ -1202,7 +1202,7 @@ void firmware_upgrade_process(void *arg)
 	int m_rtm = 300;
 	uint8 recvbuf[100];
 	uint64 lastacttm;
-	int lstsock = getMaxSocketId();
+	int lstsock = COMMON_INTERFACE_SOCKET1;   /* 上位机 TCP 8080 固定 SOCKET1（主动模式空闲口），不再递减争抢（对齐 F4A0） */
 	
 	wait_fin_init();
 /***********************************************************************/

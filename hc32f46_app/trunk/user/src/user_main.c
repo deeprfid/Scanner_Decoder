@@ -646,7 +646,7 @@ void user_main(void)
 	wait_fin_init();
 	ota_agent_boot();      /* OTA: check pending confirm (read QSPI state only) */
 	ota_server_start();   /* OTA: HTTP listen thread (listenPort+1) -- 分支前统一启动 */
-	brdcst_conf_init(getMaxSocketId());
+	brdcst_conf_init(COMMON_INTERFACE_SOCKET3);   /* 广播固定 socket3（对齐 F4A0，避免动态号与 OTA socket2 冲突） */
 	gCurWorkMode = TestFwType_ex();
 	mp_init(JsonParseMemSize);
 
