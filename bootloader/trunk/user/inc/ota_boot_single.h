@@ -5,7 +5,7 @@
 #ifndef OTA_BOOT_SINGLE_H
 #define OTA_BOOT_SINGLE_H
 
-/* è¿”å› 1=å·²å¤„ç†ï¼ˆrun_app æˆ–å¤ä½ï¼‰ï¼Œ0=æ—  OTA éœ€å¤„ç† */
+/* ·µ»Ø 1=ÒÑ´¦Àí£¨run_app »ò¸´Î»£©£¬0=ÎŞ OTA Ğè´¦Àí */
 int ota_boot_single_run(void);
 
 #endif /* OTA_BOOT_SINGLE_H */

@@ -444,7 +444,7 @@
               <FileType>4</FileType>
               <FilePath>..\..\driver_lib\hc32f46_boot.lib</FilePath>
             </File>
-            </Files>
+          </Files>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>

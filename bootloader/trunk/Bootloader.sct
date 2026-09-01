@@ -9,7 +9,6 @@ LR_IROM1 0x00000000 0x00080000  {    ; load region size_region
    .ANY (+RO)
   }
   RW_IRAM1 0x1FFF8000 0x0002F000  {  ; RW data
-    flash_op.o (+RO)
    .ANY (+RW +ZI)
   }
 }

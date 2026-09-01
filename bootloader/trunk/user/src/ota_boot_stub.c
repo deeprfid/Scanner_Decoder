@@ -1,14 +1,14 @@
 /**
  * @file ota_boot_stub.c
- * @brief boot ä¾§ stubï¼šæ»¡è¶³ boot ç‰ˆ libï¼ˆIS_RTOS2=0ï¼‰é‡Œ io_stream/irq çš„ App ç¬¦å·å¼•ç”¨
- *        ï¼ˆè¿™äº›ç¬¦å·å±äº App ä¸šåŠ¡ï¼Œboot ä¸éœ€è¦å®é™…åŠŸèƒ½ï¼Œåªæä¾›ç©ºå®ç°æ»¡è¶³é“¾æ¥ï¼‰
+ * @brief boot ²à stub£ºÂú×ã boot °æ lib£¨IS_RTOS2=0£©Àï io_stream/irq µÄ App ·ûºÅÒıÓÃ
+ *        £¨ÕâĞ©·ûºÅÊôÓÚ App ÒµÎñ£¬boot ²»ĞèÒªÊµ¼Ê¹¦ÄÜ£¬Ö»Ìá¹©¿ÕÊµÏÖÂú×ãÁ´½Ó£©
  */
 #include "hc32f46_driver.h"
 
-/* common.c #if IS_RTOS2_SUPPORT å†…å®šä¹‰ï¼Œio_stream.c extern å¼•ç”¨ */
+/* common.c #if IS_RTOS2_SUPPORT ÄÚ¶¨Òå£¬io_stream.c extern ÒıÓÃ */
 uint8_t udp_tag_update = 0;
 
-/* irq.c å¼•ç”¨ App çš„ EAS æ“¦é™¤ï¼ˆboot æ— æ­¤åŠŸèƒ½ï¼Œç©ºå®ç°ï¼‰ */
+/* irq.c ÒıÓÃ App µÄ EAS ²Á³ı£¨boot ÎŞ´Ë¹¦ÄÜ£¬¿ÕÊµÏÖ£© */
 void Erase_eastag_to_flash(void)
 {
 }

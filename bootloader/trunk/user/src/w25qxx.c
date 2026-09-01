@@ -386,7 +386,7 @@ void W25QXX_Write(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite)
 //    printf("ad:%X,nb:%X\r\n",WriteAddr,NumByteToWrite);           // for test
     if (NumByteToWrite <= secremain)
     {
-        secremain = NumByteToWrite;                                //　less than 4K
+        secremain = NumByteToWrite;                                // less than 4K
     }
     while (1)
     {

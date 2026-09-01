@@ -1,30 +1,31 @@
+
 /**
  * @file ota_boot_single.c
- * @brief F460 bootloader single-bak OTA commit/rollbackï¼ˆFWlib å®ç°ï¼‰
+ * @brief F460 bootloader single-bak OTA commit/rollback£¨FWlib ÊµÏÖ£©
  *
- * ç‰‡å†… 512KB å•ä»½ Appï¼ˆ0x16000 èµ·ï¼‰ï¼ŒQSPI åŒé•œåƒï¼š
- *   æš‚å­˜åŒº 0x000000 (512KB)  æ–°å›ºä»¶ï¼ˆApp æ”¶åŒ…å†™å…¥ï¼‰
- *   å¤‡ä»½åŒº 0x080000 (512KB)  å‡çº§å‰æ—§å›ºä»¶å¤‡ä»½
- *   çŠ¶æ€åŒº 0xF00000 (4KB)    å‡çº§æ ‡å¿—ï¼ˆmagic+flags+size+version+boot_count+crcï¼‰
+ * Æ¬ÄÚ 512KB µ¥·İ App£¨0x16000 Æğ£©£¬QSPI Ë«¾µÏñ£º
+ *   Ôİ´æÇø 0x000000 (512KB)  ĞÂ¹Ì¼ş£¨App ÊÕ°üĞ´Èë£©
+ *   ±¸·İÇø 0x080000 (512KB)  Éı¼¶Ç°¾É¹Ì¼ş±¸·İ
+ *   ×´Ì¬Çø 0x100000 (4KB)    Éı¼¶±êÖ¾£¨magic+flags+size+version+boot_count+crc£©
  *
- * æµç¨‹ï¼š
- *   NEED_COMMIT  -> æ ¡éªŒæš‚å­˜ CRC -> å¤‡ä»½ç‰‡å†…æ—§å›ºä»¶åˆ° QSPI å¤‡ä»½åŒº -> æš‚å­˜å†™ç‰‡å†…
+ * Á÷³Ì£º
+ *   NEED_COMMIT  -> Ğ£ÑéÔİ´æ CRC -> ±¸·İÆ¬ÄÚ¾É¹Ì¼şµ½ QSPI ±¸·İÇø -> Ôİ´æĞ´Æ¬ÄÚ
  *                   -> NEED_CONFIRM -> run_app
- *   NEED_CONFIRM -> boot_count++ï¼›è¶…é™ -> ä»å¤‡ä»½åŒºæ¢å¤ç‰‡å†… -> æ¸…æ ‡å¿— -> run_app
+ *   NEED_CONFIRM -> boot_count++£»³¬ÏŞ -> ´Ó±¸·İÇø»Ö¸´Æ¬ÄÚ -> Çå±êÖ¾ -> run_app
  */
 #include <string.h>
-#include "hc32_ddl.h"         /* å…ˆåŠ è½½ CMSIS/__IO/å¯„å­˜å™¨å®šä¹‰ï¼ˆw25qxx.c åŒæ¨¡å¼ï¼‰ */
+#include "hc32_ddl.h"         /* ÏÈ¼ÓÔØ CMSIS/__IO/¼Ä´æÆ÷¶¨Òå£¨w25qxx.c Í¬Ä£Ê½£© */
 #include "hc32f46_driver.h"
 #include "hc32f460_efm.h"
 #include "fw_jump_helper.h"   /* run_app, gPageBuffer */
 #include "ota_boot_single.h"
 
-/* ---- å¸ƒå±€ï¼ˆä¸ App ä¾§ ota_layout.h ä¸€è‡´ï¼‰ ---- */
+/* ---- ²¼¾Ö£¨Óë App ²à ota_layout.h Ò»ÖÂ£©---- */
 #define BSL_APP_BASE         0x00016000UL
-#define BSL_APP_MAX_SIZE     0x0007A000UL   /* 512KB å‡èµ·å§‹åç§»+æ ‡å¿—é¢„ç•™ */
+#define BSL_APP_MAX_SIZE     0x0007A000UL   /* 512KB ¼õÆğÊ¼Æ«ÒÆ+±êÖ¾Ô¤Áô */
 #define BSL_QSPI_STAGE_BASE  0x00000000UL
 #define BSL_QSPI_BACKUP_BASE 0x00080000UL
-#define BSL_STATE_BASE       0x00100000UL   /* W25Q64 8MB: ±¸·İÇøºó 4KB ÉÈÇø£¨Óë App ota_layout.h Ò»ÖÂ£© */
+#define BSL_STATE_BASE       0x00100000UL   /* W25Q64 8MB: ±¸·İÇøºó 4KB ÉÈÇø */
 #define BSL_OTA_HDR_LEN      82UL
 #define BSL_MAGIC0           'O'
 #define BSL_MAGIC1           'T'
@@ -70,7 +71,7 @@ static uint32_t crc32_update(uint32_t crc, const uint8_t *buf, uint32_t len)
     return ~crc;
 }
 
-/* ---- QSPI è¯»/å†™ï¼ˆå¤ç”¨ App åŒæº w25qxx.cï¼ŒW25QXX_* APIï¼‰ ---- */
+/* ---- QSPI ¶Á/Ğ´£¨¸´ÓÃ App Í¬Ô´ w25qxx.c£¬W25QXX_* API£©---- */
 #include "w25qxx.h"
 
 static int bsl_qspi_read(uint32_t addr, uint8_t *buf, uint32_t len)
@@ -100,7 +101,7 @@ static int bsl_qspi_write(uint32_t addr, const uint8_t *buf, uint32_t len)
     return 0;
 }
 
-/* ---- ç‰‡å†… EFM è¯»/å†™ ---- */
+/* ---- Æ¬ÄÚ EFM ¶Á/Ğ´ ---- */
 static uint32_t efm_read32(uint32_t addr)
 {
     return *((volatile uint32_t *)addr);
@@ -111,7 +112,7 @@ static int efm_sector_erase(uint32_t addr)
 }
 static int efm_write(uint32_t addr, const uint8_t *buf, uint32_t len)
 {
-    /* 4 å­—èŠ‚å¯¹é½å†™ */
+    /* 4 ×Ö½Ú¶ÔÆëĞ´ */
     uint32_t pos = 0;
     while (pos + 4 <= len) {
         uint32_t w = (uint32_t)buf[pos] | ((uint32_t)buf[pos+1] << 8) |
@@ -120,7 +121,7 @@ static int efm_write(uint32_t addr, const uint8_t *buf, uint32_t len)
             return -1;
         pos += 4;
     }
-    if (pos < len) {   /* å°¾éƒ¨ä¸è¶³ 4Bï¼šè¯»-æ”¹-å†™ */
+    if (pos < len) {   /* Î²²¿²»×ã 4B£º¶Á-¸Ä-Ğ´ */
         uint32_t w = efm_read32(addr + pos);
         for (uint32_t i = pos; i < len; i++)
             ((uint8_t *)&w)[i - pos] = buf[i];
@@ -130,7 +131,7 @@ static int efm_write(uint32_t addr, const uint8_t *buf, uint32_t len)
     return 0;
 }
 
-/* ---- æ ‡å¿— ---- */
+/* ---- ±êÖ¾ ---- */
 static int flag_read(bsl_flag_t *f)
 {
     uint32_t crc;
@@ -150,7 +151,7 @@ static int flag_write(const bsl_flag_t *f)
     return 0;
 }
 
-/* ---- æš‚å­˜åŒ…æ ¡éªŒï¼ˆmagic + CRCï¼‰ ---- */
+/* ---- Ôİ´æ°üĞ£Ñé£¨magic + CRC£©---- */
 static int verify_staged(uint32_t *fw_len, uint32_t *version)
 {
     uint8_t hdr[BSL_OTA_HDR_LEN];
@@ -181,14 +182,14 @@ static int verify_staged(uint32_t *fw_len, uint32_t *version)
     return (crc == crc_expect) ? 0 : -2;
 }
 
-/* ---- commitï¼šå¤‡ä»½ç‰‡å†… -> è¦†ç›–å†™ç‰‡å†… ---- */
+/* ---- commit£º±¸·İÆ¬ÄÚ -> ¸²¸ÇĞ´Æ¬ÄÚ ---- */
 static int commit_new_fw(uint32_t fw_len, uint32_t version)
 {
     uint32_t remain;
     bsl_flag_t f;
 
-    /* 1) å¤‡ä»½ç‰‡å†…å½“å‰ Appï¼ˆ0x16000 èµ· fw_len å­—èŠ‚ï¼‰åˆ° QSPI å¤‡ä»½åŒº */
-    /* å¤‡ä»½åŒº 512KB æ•´å—æ“¦ï¼ˆå¯¹é½ 4KBï¼‰ */
+    /* 1) ±¸·İÆ¬ÄÚµ±Ç° App£¨0x16000 Æğ fw_len ×Ö½Ú£©µ½ QSPI ±¸·İÇø */
+    /* ±¸·İÇø 512KB Õû¿é²Á£¨¶ÔÆë 4KB£© */
     bsl_qspi_erase(BSL_QSPI_BACKUP_BASE, 0x00080000UL);
     remain = fw_len;
     for (uint32_t off = 0; off < fw_len; off += sizeof(gPageBuffer)) {
@@ -198,7 +199,7 @@ static int commit_new_fw(uint32_t fw_len, uint32_t version)
         remain -= n;
     }
 
-    /* 2) æš‚å­˜ï¼ˆ82B å¤´åï¼‰-> ç‰‡å†… App åŒºï¼ˆ8KB æ‰‡åŒºæ“¦ + 4B å†™ï¼‰ */
+    /* 2) Ôİ´æ£¨82B Í·ºó£©-> Æ¬ÄÚ App Çø£¨8KB ÉÈÇø²Á + 4B Ğ´£© */
     EFM_Unlock();
     EFM_FlashCmd(Enable);
     remain = fw_len;
@@ -219,7 +220,7 @@ static int commit_new_fw(uint32_t fw_len, uint32_t version)
     }
     EFM_FlashCmd(Disable);
 
-    /* 3) ç½® NEED_CONFIRMï¼ˆæ–°å›ºä»¶å¾…è‡ªæ£€ï¼‰ */
+    /* 3) ÖÃ NEED_CONFIRM£¨ĞÂ¹Ì¼ş´ı×Ô¼ì£© */
     memset(&f, 0, sizeof(f));
     f.magic = BSL_FLAG_MAGIC;
     f.flags = BSL_FLAG_NEED_CONFIRM;
@@ -230,7 +231,7 @@ static int commit_new_fw(uint32_t fw_len, uint32_t version)
     return 0;
 }
 
-/* ---- å›æ»šï¼šä»å¤‡ä»½åŒºæ¢å¤ç‰‡å†… ---- */
+/* ---- »Ø¹ö£º´Ó±¸·İÇø»Ö¸´Æ¬ÄÚ ---- */
 static int rollback(uint32_t fw_len)
 {
     uint32_t remain = fw_len;
@@ -255,21 +256,21 @@ static int rollback(uint32_t fw_len)
     }
     EFM_FlashCmd(Disable);
 
-    /* æ¸…æ ‡å¿— */
+    /* Çå±êÖ¾ */
     memset(&f, 0, sizeof(f));
     f.magic = BSL_FLAG_MAGIC;
     flag_write(&f);
     return 0;
 }
 
-/* ---- ä¸»å…¥å£ï¼šè¿”å› 1=å·²å¤„ç†ï¼ˆè°ƒç”¨æ–¹åº” run_app/å¤ä½ï¼‰ï¼Œ0=æ—  OTA éœ€å¤„ç† ---- */
+/* ---- Ö÷Èë¿Ú£º·µ»Ø 1=ÒÑ´¦Àí£¨µ÷ÓÃ·½Ó¦ run_app/¸´Î»£©£¬0=ÎŞ OTA Ğè´¦Àí ---- */
 int ota_boot_single_run(void)
 {
     bsl_flag_t f;
     uint32_t fw_len = 0, version = 0;
 
     if (flag_read(&f) != 0)
-        return 0;   /* æ—  OTA æ ‡å¿—ï¼šèµ°åŸæœ‰å¼•å¯¼ */
+        return 0;   /* ÎŞ OTA ±êÖ¾£º×ßÔ­ÓĞÒıµ¼ */
 
     if (f.flags & BSL_FLAG_NEED_COMMIT) {
         if (verify_staged(&fw_len, &version) != 0) {
@@ -277,14 +278,14 @@ int ota_boot_single_run(void)
             memset(&f, 0, sizeof(f));
             f.magic = BSL_FLAG_MAGIC;
             flag_write(&f);
-            return 0;   /* æ ¡éªŒå¤±è´¥ï¼šæ”¾å¼ƒå‡çº§ï¼Œèµ°æ—§å›ºä»¶ */
+            return 0;   /* Ğ£ÑéÊ§°Ü£º·ÅÆúÉı¼¶£¬×ß¾É¹Ì¼ş */
         }
         if (commit_new_fw(fw_len, version) != 0) {
             TRACE("BOOT: commit FAIL\n");
             return 0;
         }
         TRACE("BOOT: commit ok, run new fw\n");
-        run_app(BSL_APP_BASE);   /* æ–°å›ºä»¶è‡ªæ£€ï¼›å¤±è´¥ä¼šå¤ä½å›æ¥ï¼ˆNEED_CONFIRMï¼‰ */
+        run_app(BSL_APP_BASE);   /* ĞÂ¹Ì¼ş×Ô¼ì£»Ê§°Ü»á¸´Î»»ØÀ´£¨NEED_CONFIRM£© */
         return 1;
     }
 
@@ -298,7 +299,7 @@ int ota_boot_single_run(void)
         }
         flag_write(&f);
         TRACE("BOOT: run new fw boot_count=%lu\n", (unsigned long)f.boot_count);
-        run_app(BSL_APP_BASE);   /* ç»§ç»­å°è¯•æ–°å›ºä»¶ */
+        run_app(BSL_APP_BASE);   /* ¼ÌĞø³¢ÊÔĞÂ¹Ì¼ş */
         return 1;
     }
 
