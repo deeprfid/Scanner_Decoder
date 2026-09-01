@@ -266,6 +266,21 @@ uint16_t W25QXX_ReadID(void)
 void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
 {
     uint8_t sr = 0u, jed[3] = {0, 0, 0};
+    uint32_t cr, cscr, fcr, pfsr_pb12, pfsr_pb13, pfsr_pb14, pfsr_pb01, pfsr_pb02, pfsr_pb10;
+    cr = M4_QSPI->CR;
+    cscr = M4_QSPI->CSCR;
+    fcr = M4_QSPI->FCR;
+        /* PFSR (pin function select) of PB01/02/10/12/13/14 */
+    pfsr_pb01 = M4_PORT->PFSRB1_f.FSEL;
+    pfsr_pb02 = M4_PORT->PFSRB2_f.FSEL;
+    pfsr_pb10 = M4_PORT->PFSRB10_f.FSEL;
+    pfsr_pb12 = M4_PORT->PFSRB12_f.FSEL;
+    pfsr_pb13 = M4_PORT->PFSRB13_f.FSEL;
+    pfsr_pb14 = M4_PORT->PFSRB14_f.FSEL;
+    TRACE("[qspi] CR=0x%08X CSCR=0x%08X FCR=0x%08X\n", (unsigned)cr, (unsigned)cscr, (unsigned)fcr);
+    TRACE("[qspi] PFSR PB01=%u PB02=%u PB10=%u PB12=%u PB13=%u PB14=%u (expect Qspi=7)\n",
+          (unsigned)pfsr_pb01, (unsigned)pfsr_pb02, (unsigned)pfsr_pb10,
+          (unsigned)pfsr_pb12, (unsigned)pfsr_pb13, (unsigned)pfsr_pb14);
     QSPI_EnterDirectCommMode();
     QSPI_WriteDirectCommValue(W25X_ReadStatusReg);
     sr = QSPI_ReadDirectCommValue();
