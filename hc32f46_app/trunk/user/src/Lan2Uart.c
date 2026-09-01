@@ -8,6 +8,7 @@
 #include "reader_init.h"
 #include "http_reader_api.h"
 #include "ota_server.h"   /* OTA: HTTP listen thread */
+#include "ota_agent.h"    /* OTA: 新固件自检确认 */
 
 volatile int gIsModAPICtrl = 0;
 volatile int gIsUnlockUart0 = 0;
@@ -501,6 +502,7 @@ void user_main_passive(void)
     ioctl(COMMON_INTERFACE_SOCKET0, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
     ioctl(COMMON_INTERFACE_SOCKET1, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
 
+    ota_agent_confirm(); /* OTA: 新固件自检确认（缺失会导致 boot 超时恢复备份固件） */
     ota_server_start();   /* OTA: HTTP listen thread -- passive init done */
 
     while (1)
