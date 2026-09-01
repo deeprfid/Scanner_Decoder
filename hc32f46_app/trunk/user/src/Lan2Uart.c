@@ -502,7 +502,7 @@ void user_main_passive(void)
     ioctl(COMMON_INTERFACE_SOCKET0, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
     ioctl(COMMON_INTERFACE_SOCKET1, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
 
-    ota_agent_confirm(); /* OTA: 新固件自检确认（缺失会导致 boot 超时恢复备份固件） */
+    //ota_agent_confirm(); /* OTA 暂时禁用 */
 
     while (1)
     {
@@ -512,6 +512,7 @@ void user_main_passive(void)
         {
             TRACE("if (gCurInfFd == -1)\n");
             system_reset();
+					  break;
         }
 
         if (gCurInfFd <= COMMON_INTERFACE_SOCKET1)
