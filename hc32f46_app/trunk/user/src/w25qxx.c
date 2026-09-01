@@ -139,17 +139,17 @@ void W25QXX_Init(void)
 
     /* Configuration QSPI structure */
     stcQspiInit.enClkDiv = QspiHclkDiv4;   /* 168MHz/4=42MHz，W25Q64 标准读限 50MHz（原 DIV2=84MHz 超限读不到） */
-    stcQspiInit.enSpiMode = QspiSpiMode3;   /* AN: SPI Mode 3 */
+    stcQspiInit.enSpiMode = QspiSpiMode0;   /* SDK例程: MD0 (W25Q64 支持) */
     stcQspiInit.enBusCommMode = QspiBusModeRomAccess;
     stcQspiInit.enPrefetchMode = QspiPrefetchStopComplete;
     stcQspiInit.enPrefetchFuncEn = Disable;
-    stcQspiInit.enQssnValidExtendTime = QspiQssnValidExtendSck32;   /* AN */
-    stcQspiInit.enQssnIntervalTime = QspiQssnIntervalQsck8;
-    stcQspiInit.enQsckDutyCorr = QspiQsckDutyCorrHalfHclk;   /* AN */
-    stcQspiInit.enVirtualPeriod = QspiVirtualPeriodQsck6;   /* AN */
+    stcQspiInit.enQssnValidExtendTime = QspiQssnValidExtendNot;
+    stcQspiInit.enQssnIntervalTime = QspiQssnIntervalQsck1;   /* SDK: interval 1 */
+    stcQspiInit.enQsckDutyCorr = QspiQsckDutyCorrNot;
+    stcQspiInit.enVirtualPeriod = QspiVirtualPeriodQsck8;
     stcQspiInit.enWpPinLevel = QspiWpPinOutputHigh;   /* AN: WP disable */
-    stcQspiInit.enQssnSetupDelayTime = QspiQssnSetupDelay1Dot5Qsck;   /* AN */
-    stcQspiInit.enQssnHoldDelayTime = QspiQssnHoldDelay1Dot5Qsck;   /* AN */
+    stcQspiInit.enQssnSetupDelayTime = QspiQssnSetupDelayHalfQsck;   /* SDK: 0.5 */
+    stcQspiInit.enQssnHoldDelayTime = QspiQssnHoldDelayHalfQsck;   /* SDK: 0.5 */
     stcQspiInit.enFourByteAddrReadEn = Disable;
     stcQspiInit.enAddrWidth = QspiAddressByteThree;
     stcQspiInit.stcCommProtocol.enReadMode = QspiReadModeStandard;

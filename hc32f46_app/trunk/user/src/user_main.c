@@ -649,8 +649,22 @@ static void qspi_self_test(void)
     TRACE("[qspi] ID=0x%04X (expect 0xEF16 W25Q64)\n", (unsigned)id);
     if (id != W25Q64) {
         TRACE("[qspi] ID MISMATCH - check hardware wiring PB01/02/10/12/13/14!\n");
-        return;
     }
+    {
+        /* diag: read SR(05h) + JEDEC ID(9Fh) */
+        uint8_t sr, jed[3];
+        uint32_t j;
+        sr = W25QXX_ReadSR();
+        QSPI_EnterDirectCommMode();
+        QSPI_WriteDirectCommValue(0x9F);
+        jed[0] = QSPI_ReadDirectCommValue();
+        jed[1] = QSPI_ReadDirectCommValue();
+        jed[2] = QSPI_ReadDirectCommValue();
+        QSPI_ExitDirectCommMode();
+        j = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
+        TRACE("[qspi] diag SR=0x%02X JEDEC=0x%06X (expect 0xEF4017)\n", (unsigned)sr, (unsigned)j);
+    }
+    if (id == W25Q64) {
     W25QXX_Erase_Sector(0x007FF000UL);
     W25QXX_Wait_Busy();
     for (i = 0; i < 64; i++) wbuf[i] = (uint8_t)i;
@@ -665,16 +679,6 @@ void user_main(void)
 {
 	int i;
 	int ispassive = 1;
-
-	wait_fin_init();
-	W25QXX_Init();          /* OTA: QSPI flash init（必须先于 ota_agent_boot 读状态） */
-	qspi_self_test();       /* 首次使用 QSPI，自检硬件连接 */
-	ota_agent_boot();      /* OTA: check pending confirm (read QSPI state only) */
-	ota_server_start();   /* OTA: HTTP listen thread (listenPort+1) -- 分支前统一启动 */
-	brdcst_conf_init(COMMON_INTERFACE_SOCKET3);   /* 广播固定 socket3（对齐 F4A0，避免动态号与 OTA socket2 冲突） */
-	gCurWorkMode = TestFwType_ex();
-	mp_init(JsonParseMemSize);
-
 #ifdef _DEBUG
 #if (AppDubugPrintf == 1)
 	InitDegutPrintf(1, COMMON_INTERFACE_SOCKET2, "192.168.1.44", 9999);
@@ -682,6 +686,14 @@ void user_main(void)
 	InitDegutPrintf(2, getMaxSocketId(), "192.168.1.44", 9999);
 #endif
 #endif
+	wait_fin_init();
+	W25QXX_Init();          /* OTA: QSPI flash init（必须先于 ota_agent_boot 读状态） */
+	qspi_self_test();       /* 首次使用 QSPI，自检硬件连接 */
+	ota_agent_boot();       /* OTA: check pending confirm (read QSPI state only) */
+	ota_server_start();     /* OTA: HTTP listen thread (listenPort+1) -- 分支前统一启动 */
+	brdcst_conf_init(COMMON_INTERFACE_SOCKET3);   /* 广播固定 socket3（对齐 F4A0，避免动态号与 OTA socket2 冲突） */
+	gCurWorkMode = TestFwType_ex();
+	mp_init(JsonParseMemSize);
 
 	gPRdrStaSet = malloc_hexp(sizeof(ReaderStaticSettings_ST));
 	get_rdr_static_settings(gPRdrStaSet);
