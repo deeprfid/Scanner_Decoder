@@ -49,16 +49,21 @@ int main(void)
 	
 	heap_base_address += 64 - heap_base_address %64;
 	_init_alloc(heap_base_address, 0x20026FF0);
-	W25QXX_Init();             /* OTA: QSPI flash init */
 
 //	InitDegutPrintf(1, COMMON_INTERFACE_SOCKET2, "192.168.1.44", 9999);
 	printf("u32ICG[0]:%d\n", u32ICG[0]);
 
 	//////
 #if JustJump2App
+	RCC_Configuration();   /* 时钟先就绪（否则 App 起不来） */
+	GPIO_Configuration();
 	run_app(0x16000);
 	while(1);
 #endif
+	RCC_Configuration();    /* 发布版：时钟就绪（原 loop 里才做，提前到 OTA 检查前） */
+	GPIO_Configuration();
+	timer_Init();
+	W25QXX_Init();          /* OTA: QSPI flash init（时钟就绪后） */
 	//////
 
 	
