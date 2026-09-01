@@ -154,3 +154,4 @@ void boot_hw_init(void)
     timer_Init();
     boot_uart_init();
 }
+
