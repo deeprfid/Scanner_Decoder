@@ -268,6 +268,8 @@ void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
 {
     uint8_t sr = 0u, jed[3] = {0, 0, 0};
     uint32_t cr, cscr, fcr, pfsr_pb12, pfsr_pb13, pfsr_pb14, pfsr_pb01, pfsr_pb02, pfsr_pb10;
+    uint32_t fcg1;
+    fcg1 = M4_MSTP->FCG1;
     cr = M4_QSPI->CR;
     cscr = M4_QSPI->CSCR;
     fcr = M4_QSPI->FCR;
@@ -279,6 +281,8 @@ void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
     pfsr_pb13 = M4_PORT->PFSRB13_f.FSEL;
     pfsr_pb14 = M4_PORT->PFSRB14_f.FSEL;
     printf("[qspi] CR=0x%08X CSCR=0x%08X FCR=0x%08X\n", (unsigned)cr, (unsigned)cscr, (unsigned)fcr);
+    printf("[qspi] QSSR=0x%08X (before)\n", (unsigned)M4_QSPI->SR);
+    printf("[qspi] FCG1=0x%08X (QSPI bit3=0 means clock ON)\n", (unsigned)fcg1);
     printf("[qspi] PFSR PB01=%u PB02=%u PB10=%u PB12=%u PB13=%u PB14=%u (expect Qspi=7)\n",
           (unsigned)pfsr_pb01, (unsigned)pfsr_pb02, (unsigned)pfsr_pb10,
           (unsigned)pfsr_pb12, (unsigned)pfsr_pb13, (unsigned)pfsr_pb14);
@@ -310,6 +314,7 @@ void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
         jed[0]=j1[0]; jed[1]=j1[1]; jed[2]=j1[2];
     }
     if (pSR) *pSR = sr;
+    printf("[qspi] QSSR=0x%08X (after)\n", (unsigned)M4_QSPI->SR);
     if (pJEDEC) *pJEDEC = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
 }
 /**
