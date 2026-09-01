@@ -122,7 +122,7 @@ void W25QXX_Init(void)
     /* QSPI pins high drive (align SDK: need PIN_HIGH_DRV for high clock) */
     MEM_ZERO_STRUCT(Port_CFG);
     Port_CFG.enPinMode  = Pin_Mode_In;
-    Port_CFG.enPinDrv   = Pin_Drv_H;   /* (: ê¾q¨:¦, Ÿý1 PORT_SetFunc ³š */
+    Port_CFG.enPinDrv   = Pin_Drv_H;   /* mux pin: drive only, func by PORT_SetFunc */
     PORT_Init(QSPCK_PORT, QSPCK_PIN, &Port_CFG);
     PORT_Init(QSNSS_PORT, QSNSS_PIN, &Port_CFG);
     PORT_Init(QSIO0_PORT, QSIO0_PIN, &Port_CFG);
