@@ -113,8 +113,21 @@ void W25QXX_Init(void)
     /* configuration structure initialization */
     MEM_ZERO_STRUCT(stcQspiInit);
 
+    stc_port_init_t Port_CFG;
+
     /* Configuration peripheral clock */
     PWC_Fcg1PeriphClockCmd(PWC_FCG1_PERIPH_QSPI, Enable);
+
+    /* QSPI 引脚高驱动（对齐 SDK：高速时钟需 PIN_HIGH_DRV） */
+    MEM_ZERO_STRUCT(Port_CFG);
+    Port_CFG.enPinMode  = Pin_Mode_Mux;
+    Port_CFG.enPinDrv   = Pin_Drv_H;
+    PORT_Init(QSPCK_PORT, QSPCK_PIN, &Port_CFG);
+    PORT_Init(QSNSS_PORT, QSNSS_PIN, &Port_CFG);
+    PORT_Init(QSIO0_PORT, QSIO0_PIN, &Port_CFG);
+    PORT_Init(QSIO1_PORT, QSIO1_PIN, &Port_CFG);
+    PORT_Init(QSIO2_PORT, QSIO2_PIN, &Port_CFG);
+    PORT_Init(QSIO3_PORT, QSIO3_PIN, &Port_CFG);
 
     /* Configuration QSPI pin */
     PORT_SetFunc(QSPCK_PORT, QSPCK_PIN, Func_Qspi, Disable);
@@ -125,7 +138,7 @@ void W25QXX_Init(void)
     PORT_SetFunc(QSIO3_PORT, QSIO3_PIN, Func_Qspi, Disable);
 
     /* Configuration QSPI structure */
-    stcQspiInit.enClkDiv = QspiHclkDiv2;
+    stcQspiInit.enClkDiv = QspiHclkDiv4;   /* 168MHz/4=42MHz，W25Q64 标准读限 50MHz（原 DIV2=84MHz 超限读不到） */
     stcQspiInit.enSpiMode = QspiSpiMode0;
     stcQspiInit.enBusCommMode = QspiBusModeRomAccess;
     stcQspiInit.enPrefetchMode = QspiPrefetchStopComplete;

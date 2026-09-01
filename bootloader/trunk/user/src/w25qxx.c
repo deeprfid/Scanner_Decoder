@@ -113,10 +113,23 @@ void W25QXX_Init(void)
     /* configuration structure initialization */
     MEM_ZERO_STRUCT(stcQspiInit);
 
+    stc_port_init_t Port_CFG;
+
     /* Configuration peripheral clock */
     PWC_Fcg1PeriphClockCmd(PWC_FCG1_PERIPH_QSPI, Enable);
 
     /* Configuration QSPI pin */
+    /* QSPI pins high drive (align SDK: need PIN_HIGH_DRV for high clock) */
+    MEM_ZERO_STRUCT(Port_CFG);
+    Port_CFG.enPinMode  = Pin_Mode_Mux;
+    Port_CFG.enPinDrv   = Pin_Drv_H;
+    PORT_Init(QSPCK_PORT, QSPCK_PIN, &Port_CFG);
+    PORT_Init(QSNSS_PORT, QSNSS_PIN, &Port_CFG);
+    PORT_Init(QSIO0_PORT, QSIO0_PIN, &Port_CFG);
+    PORT_Init(QSIO1_PORT, QSIO1_PIN, &Port_CFG);
+    PORT_Init(QSIO2_PORT, QSIO2_PIN, &Port_CFG);
+    PORT_Init(QSIO3_PORT, QSIO3_PIN, &Port_CFG);
+
     PORT_SetFunc(QSPCK_PORT, QSPCK_PIN, Func_Qspi, Disable);
     PORT_SetFunc(QSNSS_PORT, QSNSS_PIN, Func_Qspi, Disable);
     PORT_SetFunc(QSIO0_PORT, QSIO0_PIN, Func_Qspi, Disable);
@@ -125,7 +138,7 @@ void W25QXX_Init(void)
     PORT_SetFunc(QSIO3_PORT, QSIO3_PIN, Func_Qspi, Disable);
 
     /* Configuration QSPI structure */
-    stcQspiInit.enClkDiv = QspiHclkDiv2;
+    stcQspiInit.enClkDiv = QspiHclkDiv4;   /* 168MHz/4=42MHz, W25Q64 std read limit 50MHz */
     stcQspiInit.enSpiMode = QspiSpiMode0;
     stcQspiInit.enBusCommMode = QspiBusModeRomAccess;
     stcQspiInit.enPrefetchMode = QspiPrefetchStopComplete;
@@ -520,3 +533,4 @@ void W25QXX_WAKEUP(void)
 /*******************************************************************************
  * EOF (not truncated)
  ******************************************************************************/
+
