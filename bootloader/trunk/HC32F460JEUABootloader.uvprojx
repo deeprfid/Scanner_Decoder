@@ -420,11 +420,6 @@
               <FilePath>.\user\inc\fw_jump_helper.h</FilePath>
             </File>
             <File>
-              <FileName>update_by_ftp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\user\src\update_by_ftp.c</FilePath>
-            </File>
-            <File>
               <FileName>ota_boot_single.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\src\ota_boot_single.c</FilePath>
@@ -454,12 +449,7 @@
               <FileType>4</FileType>
               <FilePath>..\..\driver_lib\hc32f46_boot.lib</FilePath>
             </File>
-            <File>
-              <FileName>update_by_ftp.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\user\inc\update_by_ftp.h</FilePath>
-            </File>
-          </Files>
+            </Files>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>

@@ -4,7 +4,6 @@
 #include "btMsg.h"
 #include "hc32f46_driver.h"
 #include "fw_jump_helper.h"
-#include "update_by_ftp.h"
 #include "w25qxx.h"          /* OTA: QSPI flash */
 #include "ota_boot_single.h"   /* OTA: single-bak commit */
 //#include "mp_pool.h"
@@ -198,145 +197,6 @@ if (gSpiex == Spi_Ex_Ethernet)
 		dhcp_wait();
 }
 
-#if EthernetFTPSup
-	if ((btparams.updatemode == FwUpdateMode_ByFtp_FmEth && gSpiex == Spi_Ex_Ethernet) || 
-		(btparams.updatemode == FwUpdateMode_ByFtp_Fm4G && gUartex == Uart_Ex_4G))
-	{
-		char *fppos;
-		uint16 fport;
-		fppos = strstr(btparams.ftpaddr, ":");
-		if (fppos == NULL)
-			fport = 21;
-		else
-		{
-			fppos[0] = 0;
-			fport = atoi_Arm(fppos+1);
-		}
-		TRACE("server:%s, port:%d\n", btparams.ftpaddr, fport);
-		rfid_power_off();
-		sleep_ms(1500);
-		rfid_power_on();
-		sleep_ms(1500);
-		
-		if (btparams.updatemode == FwUpdateMode_ByFtp_FmEth)
-		{
-			uint8 ftpservip[4];
-			uint8 *helpbuf;
-			uint64 starttime;
-			uint64 nowtime;
-			
-			helpbuf = malloc(2048);
-			if (IsIpv4address(btparams.ftpaddr) != 1)
-			{
-				wiz_NetInfo info;
-				pre_DNS_init();
-				DNS_init(COMMON_INTERFACE_SOCKET3, helpbuf);
-				
-				wizchip_getnetinfo(&info);			
-				TRACE("dnsServer:%d.%d.%d.%d\n", info.dns[0], 
-					info.dns[1], info.dns[2], info.dns[3]);
-				
-				ret =  DNS_run(info.dns, (uint8 *) btparams.ftpaddr, ftpservip);
-				if (ret != 1)
-				{
-					TRACE("DNS_run error\n");
-					sleep_ms(1000*120);
-					system_reset();
-				}
-				else
-				{
-					TRACE("DNS_run success: %d.%d.%d.%d\n", ftpservip[0], ftpservip[1],
-						ftpservip[2], ftpservip[3]);
-				}
-				aft_DNS_run();
-			}
-			else
-			{
-				if (addr_str2bin(btparams.ftpaddr, ftpservip) != 0)
-				{
-					led_toggle(-1, 120, brdcst_conf_handler);
-					while(1);
-				}
-			}
-
-			close(COMMON_INTERFACE_SOCKET0);
-			close(COMMON_INTERFACE_SOCKET1);
-			ftpc_init(ftpservip, btparams.ftpuser, btparams.ftppassword, 
-				btparams.filename, fport, ftp_init_callback, ftp_data_callback);
-
-			starttime = getSysTick();
-			while(1)
-			{
-				brdcst_conf_handler();
-				ret = ftpc_run(helpbuf);
-				TRACE("ftpc_run ret:%d\n", ret);
-				if (ret == 226)
-				{
-					ftpc_destory();
-					aft_ftp_update_fw(&btparams);
-				}
-				else if (ret == -12345) //network error
-				{
-					ftpc_destory();
-					led_toggle(180*1000, 700, brdcst_conf_handler);			
-					system_reset();
-				}
-				else if (ret == -12346) //user or pwd error
-				{
-					ftpc_destory();
-					led_toggle(-1, 80, brdcst_conf_handler);
-				}
-				else if (ret == -12347) //file not find
-				{
-					TRACE("befroe ftpc_destory\n");
-					ftpc_destory();
-					TRACE("after ftpc_destory\n");
-					led_toggle(360*1000, 300, brdcst_conf_handler);				
-					system_reset();
-				}
-				else
-				{
-					nowtime = getSysTick();
-					if (nowtime - starttime > 140*1000)
-					{
-						TRACE("ftp init start failed \n");
-						ftpc_destory();
-						TRACE("-----------------\n");
-						sleep_ms(1000*120);			
-						system_reset();				
-					}
-				}
-				sleep_ms(100);
-			}			
-		}
-		else if (btparams.updatemode == FwUpdateMode_ByFtp_Fm4G)
-		{
-			init_4g_noconf(115200, 15000);
-	//		usr_ftp_update_fw("wh-nbe33cl16g85ceddlwb.my3w.com", 21, "wh-nbe33cl16g85ceddlwb",
-	//			"Silion123456", "myfolder/bsp_hc32f460_uart.h");
-			/*
-			if (usr_ftp_update_fw("43.138.155.217", 21, "RfidDemo",
-				"Silion123", "std_hc32only_app_30.0.0.0_8.slfw") == 0)
-				aft_ftp_update_fw(&btparams);
-			else
-			{
-				sleep_ms(20000);
-				system_reset();
-			}
-			*/
-			if (usr_ftp_update_fw(btparams.ftpaddr, fport, btparams.ftpuser,
-				btparams.ftppassword, btparams.filename) == 0)
-				aft_ftp_update_fw(&btparams);
-			else
-			{
-				sleep_ms(20000);
-				system_reset();
-			}
-		}
-	}
-	else
-	{
-#endif
 //		printf("before while (1)\n");
 		while (1)
 		{
@@ -556,9 +416,6 @@ if (gSpiex == Spi_Ex_Ethernet)
 				SendRespMsg(&Msg); 
 			}
 		}
-#if EthernetFTPSup		
-	}
-#endif
 	return 0;
 }
 

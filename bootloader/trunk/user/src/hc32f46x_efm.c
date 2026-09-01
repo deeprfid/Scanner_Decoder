@@ -21,7 +21,7 @@
  ******************************************************************************/
 #include "hc32f460_efm.h"
 #include "hc32f460_utility.h"
-
+#include <stdio.h>
 #if (DDL_EFM_ENABLE == DDL_ON)
 
 /**
