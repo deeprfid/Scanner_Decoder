@@ -57,6 +57,13 @@ static int http_recv_body(int fd, long total)
         TRACE("ota_http: channel busy, reject\n");
         return -1;
     }
+    /* body 接收恢复阻塞模式 + 超时：非阻塞下 read 返回 0 会误判传输失败 */
+    {
+        int blkmode = O_BLOCK;
+        int to = 2000;   /* 10s 收 body（单位 SYSTEM_TICK_DUR=5ms） */
+        ioctl(fd, COMMON_INTERFACE_SET_ISBLOCK, &blkmode);
+        ioctl(fd, COMMON_INTERFACE_SET_TIMEOUT, &to);
+    }
     ota_set_progress(0);
     s_http_prog = 0;
     s_http_kv   = 0;
@@ -99,6 +106,11 @@ void http_handle_conn(int fd)
     char hdr[512];
     int  hlen = 0, n;
     long total;
+    int  blkmode = O_NONBLOCK;   /* 关键: socket 默认 O_BLOCK+timeout=-1 会无限等数据，header 必须非阻塞防卡死 */
+    int  hto = 400;              /* 2s 收 header（单位 SYSTEM_TICK_DUR=5ms） */
+
+    ioctl(fd, COMMON_INTERFACE_SET_ISBLOCK, &blkmode);
+    ioctl(fd, COMMON_INTERFACE_SET_TIMEOUT, &hto);
 
     while (hlen < (int)sizeof(hdr) - 1) {
         n = read(fd, (uint8_t *)hdr + hlen, 1);

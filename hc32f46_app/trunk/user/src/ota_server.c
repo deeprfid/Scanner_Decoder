@@ -38,6 +38,7 @@ static void ota_http_task(void *arg)
 void ota_server_start(void)
 {
     osThreadAttr_t thAttr_t;
-    init_osThreadAttr_t(&thAttr_t, 1024 * 8, osPriorityHigh);
+    /* Normal 优先级：避免抢占业务初始化线程（此前 High 会饿死业务初始化） */
+    init_osThreadAttr_t(&thAttr_t, 1024 * 8, osPriorityNormal);
     osThreadNew(ota_http_task, NULL, &thAttr_t);
 }

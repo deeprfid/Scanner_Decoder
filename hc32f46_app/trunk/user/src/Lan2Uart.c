@@ -7,6 +7,7 @@
 #include "mp_pool.h"
 #include "reader_init.h"
 #include "http_reader_api.h"
+#include "ota_server.h"   /* OTA: HTTP listen thread */
 
 volatile int gIsModAPICtrl = 0;
 volatile int gIsUnlockUart0 = 0;
@@ -499,6 +500,8 @@ void user_main_passive(void)
 
     ioctl(COMMON_INTERFACE_SOCKET0, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
     ioctl(COMMON_INTERFACE_SOCKET1, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
+
+    ota_server_start();   /* OTA: HTTP listen thread -- passive init done */
 
     while (1)
     {
