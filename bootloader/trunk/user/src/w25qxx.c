@@ -138,24 +138,24 @@ void W25QXX_Init(void)
     PORT_SetFunc(QSIO3_PORT, QSIO3_PIN, Func_Qspi, Disable);
 
     /* Configuration QSPI structure */
-    stcQspiInit.enClkDiv = QspiHclkDiv4;   /* 168MHz/4=42MHz, W25Q64 std read limit 50MHz */
+    stcQspiInit.enClkDiv = QspiHclkDiv3;   /* SDK: DIV3 */   /* 168MHz/4=42MHz, W25Q64 std read limit 50MHz */
     stcQspiInit.enSpiMode = QspiSpiMode0;   /* SDKÀý³Ì: MD0 */
     stcQspiInit.enBusCommMode = QspiBusModeRomAccess;
     stcQspiInit.enPrefetchMode = QspiPrefetchStopComplete;
     stcQspiInit.enPrefetchFuncEn = Disable;
     stcQspiInit.enQssnValidExtendTime = QspiQssnValidExtendNot;
-    stcQspiInit.enQssnIntervalTime = QspiQssnIntervalQsck1;   /* SDK: interval 1 */
+    stcQspiInit.enQssnIntervalTime = QspiQssnIntervalQsck2;   /* SDK: 2 */   /* SDK: interval 1 */
     stcQspiInit.enQsckDutyCorr = QspiQsckDutyCorrNot;
     stcQspiInit.enVirtualPeriod = QspiVirtualPeriodQsck8;
     stcQspiInit.enWpPinLevel = QspiWpPinOutputHigh;   /* AN: WP disable */
-    stcQspiInit.enQssnSetupDelayTime = QspiQssnSetupDelayHalfQsck;   /* SDK: 0.5 */
-    stcQspiInit.enQssnHoldDelayTime = QspiQssnHoldDelayHalfQsck;   /* SDK: 0.5 */
+    stcQspiInit.enQssnSetupDelayTime = QspiQssnSetupDelay1Dot5Qsck;   /* SDK: 1.5 */   /* SDK: 0.5 */
+    stcQspiInit.enQssnHoldDelayTime = QspiQssnHoldDelay1Dot5Qsck;   /* SDK: 1.5 */   /* SDK: 0.5 */
     stcQspiInit.enFourByteAddrReadEn = Disable;
     stcQspiInit.enAddrWidth = QspiAddressByteThree;
-    stcQspiInit.stcCommProtocol.enReadMode = QspiReadModeStandard;
-    stcQspiInit.stcCommProtocol.enTransInstrProtocol = QspiProtocolFourWiresSpi;
-    stcQspiInit.stcCommProtocol.enTransAddrProtocol  = QspiProtocolFourWiresSpi;
-    stcQspiInit.stcCommProtocol.enReceProtocol       = QspiProtocolFourWiresSpi;
+    stcQspiInit.stcCommProtocol.enReadMode = QspiReadModeFourWiresIO;   /* SDK: QUAD_IO */
+    stcQspiInit.stcCommProtocol.enTransInstrProtocol = QspiProtocolExtendSpi;
+    stcQspiInit.stcCommProtocol.enTransAddrProtocol  = QspiProtocolExtendSpi;
+    stcQspiInit.stcCommProtocol.enReceProtocol       = QspiProtocolExtendSpi;
     stcQspiInit.u8RomAccessInstr = QSPI_3BINSTR_STANDARD_READ;
     QSPI_Init(&stcQspiInit);
     /* Read Flash ID */
