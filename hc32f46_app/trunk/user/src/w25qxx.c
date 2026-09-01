@@ -279,21 +279,6 @@ void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
     if (pSR) *pSR = sr;
     if (pJEDEC) *pJEDEC = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
 }
-
-{
-    uint16_t u16FlashID = 0u;
-
-    QSPI_EnterDirectCommMode();
-    QSPI_WriteDirectCommValue(W25X_ManufactDeviceID);
-    QSPI_WriteDirectCommValue(0x00u);
-    QSPI_WriteDirectCommValue(0x00u);
-    QSPI_WriteDirectCommValue(0x00u);
-    u16FlashID |= (uint16_t)((uint16_t)QSPI_ReadDirectCommValue() << (int8_t)8);
-    u16FlashID |= QSPI_ReadDirectCommValue();
-    QSPI_ExitDirectCommMode();
-    return u16FlashID;
-}
-
 /**
  *******************************************************************************
  ** \brief W25QXX read flash content
