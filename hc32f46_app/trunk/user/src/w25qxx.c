@@ -53,6 +53,7 @@
  * Include files
  ******************************************************************************/
 #include "hc32_ddl.h"
+#include <stdio.h>
 #include "w25qxx.h"
 
 /*******************************************************************************
@@ -277,8 +278,8 @@ void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
     pfsr_pb12 = M4_PORT->PFSRB12_f.FSEL;
     pfsr_pb13 = M4_PORT->PFSRB13_f.FSEL;
     pfsr_pb14 = M4_PORT->PFSRB14_f.FSEL;
-    TRACE("[qspi] CR=0x%08X CSCR=0x%08X FCR=0x%08X\n", (unsigned)cr, (unsigned)cscr, (unsigned)fcr);
-    TRACE("[qspi] PFSR PB01=%u PB02=%u PB10=%u PB12=%u PB13=%u PB14=%u (expect Qspi=7)\n",
+    printf("[qspi] CR=0x%08X CSCR=0x%08X FCR=0x%08X\n", (unsigned)cr, (unsigned)cscr, (unsigned)fcr);
+    printf("[qspi] PFSR PB01=%u PB02=%u PB10=%u PB12=%u PB13=%u PB14=%u (expect Qspi=7)\n",
           (unsigned)pfsr_pb01, (unsigned)pfsr_pb02, (unsigned)pfsr_pb10,
           (unsigned)pfsr_pb12, (unsigned)pfsr_pb13, (unsigned)pfsr_pb14);
     QSPI_EnterDirectCommMode();
