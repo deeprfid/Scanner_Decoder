@@ -503,7 +503,6 @@ void user_main_passive(void)
     ioctl(COMMON_INTERFACE_SOCKET1, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
 
     ota_agent_confirm(); /* OTA: 新固件自检确认（缺失会导致 boot 超时恢复备份固件） */
-    ota_server_start();   /* OTA: HTTP listen thread -- passive init done */
 
     while (1)
     {

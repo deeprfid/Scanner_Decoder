@@ -365,7 +365,6 @@ void user_main_active(void)
 	get_left_heap_size("after OpenReader");
 	gIsFinInit = 1;
 	ota_agent_confirm();  /* OTA: new fw self-check ok */
-	ota_server_start();   /* OTA: HTTP listen thread (listenPort+1) -- 业务初始化完成后启动 */
 
 	if (gRdrErr != MT_OK_ERR)
 	{
@@ -645,7 +644,8 @@ void user_main(void)
 	int ispassive = 1;
 
 	wait_fin_init();
-	ota_agent_boot();      /* OTA: check pending confirm */
+	ota_agent_boot();      /* OTA: check pending confirm (read QSPI state only) */
+	ota_server_start();   /* OTA: HTTP listen thread (listenPort+1) -- 分支前统一启动 */
 	brdcst_conf_init(getMaxSocketId());
 	gCurWorkMode = TestFwType_ex();
 	mp_init(JsonParseMemSize);
