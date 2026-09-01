@@ -8,7 +8,7 @@ Usage (after the KEIL projects are compiled):
     python tools/build_release_f460.py --build    (also compiles driver/boot/app via UV4)
 
 Outputs to Scanner_20260901/release/ (timestamped):
-    merged_f460_<ver>_<YYYYMMDD_HHMM>.bin    DAP-LINK/J-Link flash (boot@0x0 + app@0x16000)
+    merged_f460_<ver>_<YYYYMMDD_HHMM>.bin    DAP-LINK/J-Link flash (boot@0x0(64KB) + app@0x10000)
     fw_<ver>_<YYYYMMDD_HHMM>.otapkg          HTTP channel upgrade package (platform=1=F460)
     FW.BIN                                   fixed-name binary (byte-identical to pkg)
     manifest.txt                             version/time/size/SHA256
@@ -110,7 +110,7 @@ def main():
     pkg    = os.path.join(RELEASE, "fw_" + verstr + "_" + stamp + ".otapkg")
     fwbin  = os.path.join(RELEASE, "FW.BIN")
 
-    # 1) DAP-LINK merged bin (boot@0x0 + app@0x16000, 两个 hex 合并)
+    # 1) DAP-LINK merged bin (boot@0x0 64KB + app@0x10000, 两个 hex 合并)
     run(["python", MERGE_BIN, boot_hex, app_hex, "-o", merged])
     # 2) upgrade package (HTTP channel, platform=1=F460, payload 用 bin)
     run(["python", OTA_PACK, APP_BIN, "--version", verstr, "--platform", "1", "-o", pkg])

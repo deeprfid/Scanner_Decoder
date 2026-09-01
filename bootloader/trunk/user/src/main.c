@@ -15,7 +15,7 @@ int main(void)
     boot_hw_init();   /* clock + GPIO + SysTick + UART2 printf */
 
 #if JustJump2App
-    run_app(0x16000);
+    run_app(0x10000);
     while (1);
 #endif
 
@@ -27,6 +27,6 @@ int main(void)
 
     /* No OTA task: run app directly */
     boot_printf("boot: no OTA, run app\n");
-    run_app(0x16000);
+    run_app(0x10000);
     while (1);
 }

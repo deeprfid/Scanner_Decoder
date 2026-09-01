@@ -22,8 +22,8 @@ void boot_printf(const char *fmt, ...);   /* boot_init.c: UART2 printf */
 #include "ota_boot_single.h"
 
 /* ---- 布局（与 App 侧 ota_layout.h 一致）---- */
-#define BSL_APP_BASE         0x00016000UL
-#define BSL_APP_MAX_SIZE     0x0007A000UL   /* 512KB 减起始偏移+标志预留 */
+#define BSL_APP_BASE         0x00010000UL
+#define BSL_APP_MAX_SIZE     0x00070000UL   /* 512KB 减起始偏移+标志预留 */
 #define BSL_QSPI_STAGE_BASE  0x00000000UL
 #define BSL_QSPI_BACKUP_BASE 0x00080000UL
 #define BSL_STATE_BASE       0x00100000UL   /* W25Q64 8MB: 备份区后 4KB 扇区 */
