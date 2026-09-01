@@ -410,11 +410,6 @@
               <FilePath>.\user\src\fw_jump_helper.c</FilePath>
             </File>
             <File>
-              <FileName>btMsg.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\user\src\btMsg.c</FilePath>
-            </File>
-            <File>
               <FileName>fw_jump_helper.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\user\inc\fw_jump_helper.h</FilePath>
