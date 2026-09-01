@@ -23,8 +23,8 @@
 #define OTA_QSPI_BACKUP_SIZE   0x00080000UL   /* 512KB */
 
 /* 升级状态扇区（备用区头部，4KB 扇区对齐） */
-#define OTA_STATE_SECTOR_BASE  0x00F00000UL   /* 备用区起始 */
-#define OTA_STATE_SECTOR_SIZE  0x00001000UL   /* 4KB */
+#define OTA_STATE_SECTOR_BASE  0x00100000UL   /* ״̬��: ��������, W25Q64 8MB �� */
+#define OTA_STATE_SECTOR_SIZE  0x00001000UL   /* 4KB */   /* 4KB */
 
 /* ---- 片内 ---- */
 #define OTA_APP_BASE           0x00016000UL   /* App 链接基址（boot run_app 跳转地址） */

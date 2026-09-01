@@ -24,7 +24,7 @@
 #define BSL_APP_MAX_SIZE     0x0007A000UL   /* 512KB å‡èµ·å§‹åç§»+æ ‡å¿—é¢„ç•™ */
 #define BSL_QSPI_STAGE_BASE  0x00000000UL
 #define BSL_QSPI_BACKUP_BASE 0x00080000UL
-#define BSL_STATE_BASE       0x00F00000UL
+#define BSL_STATE_BASE       0x00100000UL   /* W25Q64 8MB: ±¸·İÇøºó 4KB ÉÈÇø£¨Óë App ota_layout.h Ò»ÖÂ£© */
 #define BSL_OTA_HDR_LEN      82UL
 #define BSL_MAGIC0           'O'
 #define BSL_MAGIC1           'T'
