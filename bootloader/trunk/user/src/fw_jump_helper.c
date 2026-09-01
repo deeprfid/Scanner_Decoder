@@ -6,7 +6,6 @@
 #include "hc32f46_driver.h"
 #include "fw_jump_helper.h"
 
-uint8 armBootVersion[5]={'0','2','0','0',0};
 
 void EFM_SetWaitCycle(uint32_t u32Cycle)
 {
@@ -125,71 +124,6 @@ void run_app(uint32_t appAddr)
     }
 }
 
-void fw_revert4bytes(uint8 *fwdata, int len)
-{
-	int i;
-	uint8 tmpbyte;
-	for (i = 0; i < len/4; ++i)
-	{
-		tmpbyte = fwdata[i*4];
-		fwdata[i*4] = fwdata[i*4+3];
-		fwdata[i*4+3] = tmpbyte;
-		tmpbyte = fwdata[i*4+1];
-		fwdata[i*4+1] = fwdata[i*4+2];
-		fwdata[i*4+2] = tmpbyte;
-	}
-}
 
 uint8 gPageBuffer[PAGE_SIZE];
-int verifyFirmware(uint32 fwaddr, uint32 fwlen, uint32 fwcrc)
-{
-	uint8 *page = gPageBuffer;
-	int i, j;
-	uint32 crc[4];
-	uint32 crc_;
-
-	int page_start = fwaddr;
-	int fullpagecnt = fwlen / PAGE_SIZE;
-	int lastbytesinpage = fwlen % PAGE_SIZE;
-
-	crc[0] = 0;
-	crc[1] = 0;
-	crc[2] = 0;
-	crc[3] = 0;
-
-
-	for (i = 0; i < fullpagecnt; ++i)
-	{
-		flash_bytes_read(page_start+i*PAGE_SIZE, page, PAGE_SIZE);
-		for (j = 0; j < PAGE_SIZE / 4; ++j)
-		{
-			crc[3] += page[j*4];
-			crc[2] += page[j*4+1];
-			crc[1] += page[j*4+2];
-			crc[0] += page[j*4+3];
-		}
-	}
-
-	if (lastbytesinpage > 0)
-	{
-		flash_bytes_read(page_start+i*PAGE_SIZE, page, lastbytesinpage);
-		for (i = 0; i < lastbytesinpage / 4; ++i)
-		{
-			crc[3] += page[i*4];
-			crc[2] += page[i*4+1];
-			crc[1] += page[i*4+2];
-			crc[0] += page[i*4+3];
-		}
-	}
-
-
-	crc_ = ((crc[0] & 0xff) << 24) | ((crc[1]  & 0xff) << 16)
-		| ((crc[2] & 0xff) << 8) | ((crc[3] & 0xff) << 0);
-
-//	TRACE("verifyFirmware crc_:%08X\n", crc_);
-	if (fwcrc == crc_)
-		return 0;
-	else
-		return -1;		
-}
 
