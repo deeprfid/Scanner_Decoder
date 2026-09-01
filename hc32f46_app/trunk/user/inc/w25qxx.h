@@ -109,6 +109,7 @@ extern uint16_t W25QXX_TYPE;
 void W25QXX_Init(void);
 uint16_t  W25QXX_ReadID(void);
 uint8_t   W25QXX_ReadSR(void);
+void      W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC);
 void W25QXX_Write_SR(uint8_t sr);
 void W25QXX_Write_Enable(void);
 void W25QXX_Write_Disable(void);

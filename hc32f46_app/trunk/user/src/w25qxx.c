@@ -246,7 +246,40 @@ void W25QXX_Write_Disable(void)
  **  0XEF17: W25Q128
  **
  ******************************************************************************/
+
 uint16_t W25QXX_ReadID(void)
+{
+    uint16_t u16FlashID = 0u;
+
+    QSPI_EnterDirectCommMode();
+    QSPI_WriteDirectCommValue(W25X_ManufactDeviceID);
+    QSPI_WriteDirectCommValue(0x00u);
+    QSPI_WriteDirectCommValue(0x00u);
+    QSPI_WriteDirectCommValue(0x00u);
+    u16FlashID |= (uint16_t)((uint16_t)QSPI_ReadDirectCommValue() << (int8_t)8);
+    u16FlashID |= QSPI_ReadDirectCommValue();
+    QSPI_ExitDirectCommMode();
+    return u16FlashID;
+}
+
+/* QSPI diagnostic: read SR(05h) + JEDEC ID(9Fh) */
+void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
+{
+    uint8_t sr = 0u, jed[3] = {0, 0, 0};
+    QSPI_EnterDirectCommMode();
+    QSPI_WriteDirectCommValue(W25X_ReadStatusReg);
+    sr = QSPI_ReadDirectCommValue();
+    QSPI_ExitDirectCommMode();
+    QSPI_EnterDirectCommMode();
+    QSPI_WriteDirectCommValue(0x9F);
+    jed[0] = QSPI_ReadDirectCommValue();
+    jed[1] = QSPI_ReadDirectCommValue();
+    jed[2] = QSPI_ReadDirectCommValue();
+    QSPI_ExitDirectCommMode();
+    if (pSR) *pSR = sr;
+    if (pJEDEC) *pJEDEC = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
+}
+
 {
     uint16_t u16FlashID = 0u;
 

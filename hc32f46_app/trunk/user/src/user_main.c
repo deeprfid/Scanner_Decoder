@@ -14,7 +14,6 @@
 #include "event_mq.h"
 #include "ipc.h"
 #include "w25qxx.h"      /* OTA: QSPI flash */
-#include "hc32f460_qspi.h" /* QSPI direct comm API */
 #include "ota_agent.h"   /* OTA: startup check + confirm */
 #include "ota_server.h"  /* OTA: HTTP listen thread */
 /*****************************************************************************
@@ -652,17 +651,10 @@ static void qspi_self_test(void)
         TRACE("[qspi] ID MISMATCH - check hardware wiring PB01/02/10/12/13/14!\n");
     }
     {
-        /* diag: read SR(05h) + JEDEC ID(9Fh) */
-        uint8_t sr, jed[3];
-        uint32_t j;
-        sr = W25QXX_ReadSR();
-        QSPI_EnterDirectCommMode();
-        QSPI_WriteDirectCommValue(0x9F);
-        jed[0] = QSPI_ReadDirectCommValue();
-        jed[1] = QSPI_ReadDirectCommValue();
-        jed[2] = QSPI_ReadDirectCommValue();
-        QSPI_ExitDirectCommMode();
-        j = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
+        /* diag: read SR(05h) + JEDEC ID(9Fh) via W25QXX_Diag */
+        uint8_t sr = 0;
+        uint32_t j = 0;
+        W25QXX_Diag(&sr, &j);
         TRACE("[qspi] diag SR=0x%02X JEDEC=0x%06X (expect 0xEF4017)\n", (unsigned)sr, (unsigned)j);
     }
     if (id == W25Q64) {
