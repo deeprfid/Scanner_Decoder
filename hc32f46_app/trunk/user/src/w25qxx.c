@@ -53,7 +53,6 @@
  * Include files
  ******************************************************************************/
 #include "hc32_ddl.h"
-#include <stdio.h>
 #include "w25qxx.h"
 
 /*******************************************************************************
@@ -267,54 +266,20 @@ uint16_t W25QXX_ReadID(void)
 void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
 {
     uint8_t sr = 0u, jed[3] = {0, 0, 0};
-    uint32_t cr, cscr, fcr, pfsr_pb12, pfsr_pb13, pfsr_pb14, pfsr_pb01, pfsr_pb02, pfsr_pb10;
-    uint32_t fcg1;
-    fcg1 = M4_MSTP->FCG1;
-    cr = M4_QSPI->CR;
-    cscr = M4_QSPI->CSCR;
-    fcr = M4_QSPI->FCR;
-        /* PFSR (pin function select) of PB01/02/10/12/13/14 */
-    pfsr_pb01 = M4_PORT->PFSRB1_f.FSEL;
-    pfsr_pb02 = M4_PORT->PFSRB2_f.FSEL;
-    pfsr_pb10 = M4_PORT->PFSRB10_f.FSEL;
-    pfsr_pb12 = M4_PORT->PFSRB12_f.FSEL;
-    pfsr_pb13 = M4_PORT->PFSRB13_f.FSEL;
-    pfsr_pb14 = M4_PORT->PFSRB14_f.FSEL;
-    printf("[qspi] CR=0x%08X CSCR=0x%08X FCR=0x%08X\n", (unsigned)cr, (unsigned)cscr, (unsigned)fcr);
-    printf("[qspi] QSSR=0x%08X (before)\n", (unsigned)M4_QSPI->SR);
-    printf("[qspi] FCG1=0x%08X (QSPI bit3=0 means clock ON)\n", (unsigned)fcg1);
-    printf("[qspi] PFSR PB01=%u PB02=%u PB10=%u PB12=%u PB13=%u PB14=%u (expect Qspi=7)\n",
-          (unsigned)pfsr_pb01, (unsigned)pfsr_pb02, (unsigned)pfsr_pb10,
-          (unsigned)pfsr_pb12, (unsigned)pfsr_pb13, (unsigned)pfsr_pb14);
+
     QSPI_EnterDirectCommMode();
     QSPI_WriteDirectCommValue(W25X_ReadStatusReg);
     sr = QSPI_ReadDirectCommValue();
     QSPI_ExitDirectCommMode();
-    /* A/B test: MDSEL=0(Std) then MDSEL=5(QuadIO) */
-    {
-        uint8_t j0[3] = {0,0,0}, j1[3] = {0,0,0};
-        uint32_t oldMds = M4_QSPI->CR_f.MDSEL;
-        M4_QSPI->CR_f.MDSEL = 0;   /* Standard read mode */
-        QSPI_EnterDirectCommMode();
-        QSPI_WriteDirectCommValue(0x9F);
-        j0[0] = QSPI_ReadDirectCommValue();
-        j0[1] = QSPI_ReadDirectCommValue();
-        j0[2] = QSPI_ReadDirectCommValue();
-        QSPI_ExitDirectCommMode();
-        printf("[qspi] A: MDSEL=0 JEDEC=0x%06X\n", (unsigned)(((uint32_t)j0[0]<<16)|((uint32_t)j0[1]<<8)|j0[2]));
-        M4_QSPI->CR_f.MDSEL = 5;   /* QUAD_IO */
-        QSPI_EnterDirectCommMode();
-        QSPI_WriteDirectCommValue(0x9F);
-        j1[0] = QSPI_ReadDirectCommValue();
-        j1[1] = QSPI_ReadDirectCommValue();
-        j1[2] = QSPI_ReadDirectCommValue();
-        QSPI_ExitDirectCommMode();
-        printf("[qspi] B: MDSEL=5 JEDEC=0x%06X\n", (unsigned)(((uint32_t)j1[0]<<16)|((uint32_t)j1[1]<<8)|j1[2]));
-        M4_QSPI->CR_f.MDSEL = oldMds;
-        jed[0]=j1[0]; jed[1]=j1[1]; jed[2]=j1[2];
-    }
+
+    QSPI_EnterDirectCommMode();
+    QSPI_WriteDirectCommValue(0x9F);
+    jed[0] = QSPI_ReadDirectCommValue();
+    jed[1] = QSPI_ReadDirectCommValue();
+    jed[2] = QSPI_ReadDirectCommValue();
+    QSPI_ExitDirectCommMode();
+
     if (pSR) *pSR = sr;
-    printf("[qspi] QSSR=0x%08X (after)\n", (unsigned)M4_QSPI->SR);
     if (pJEDEC) *pJEDEC = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
 }
 /**
