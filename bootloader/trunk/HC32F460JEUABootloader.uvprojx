@@ -400,6 +400,11 @@
           <GroupName>user</GroupName>
           <Files>
             <File>
+              <FileName>boot_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\src\boot_init.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\src\main.c</FilePath>
@@ -420,11 +425,6 @@
               <FilePath>.\user\src\ota_boot_single.c</FilePath>
             </File>
             <File>
-              <FileName>ota_boot_stub.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\user\src\ota_boot_stub.c</FilePath>
-            </File>
-            <File>
               <FileName>hc32f46x_efm.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\src\hc32f46x_efm.c</FilePath>
@@ -439,10 +439,45 @@
               <FileType>5</FileType>
               <FilePath>.\user\inc\app_conf.h</FilePath>
             </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>FWlib</GroupName>
+          <Files>
             <File>
-              <FileName>hc32f46_boot.lib</FileName>
-              <FileType>4</FileType>
-              <FilePath>..\..\driver_lib\hc32f46_boot.lib</FilePath>
+              <FileName>hc32f460_clk.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_clk.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f460_gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f460_sram.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_sram.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f460_pwc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_pwc.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f460_utility.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_utility.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f460_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_qspi.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32f460_usart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\hc32f46_driver\trunk\FWlib\src\hc32f460_usart.c</FilePath>
             </File>
           </Files>
         </Group>

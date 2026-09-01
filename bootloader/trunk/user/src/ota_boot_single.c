@@ -15,7 +15,8 @@
  */
 #include <string.h>
 #include "hc32_ddl.h"         /* 先加载 CMSIS/__IO/寄存器定义（w25qxx.c 同模式） */
-#include "hc32f46_driver.h"
+void boot_printf(const char *fmt, ...);   /* boot_init.c: UART2 printf */
+#define TRACE boot_printf
 #include "hc32f460_efm.h"
 #include "fw_jump_helper.h"   /* run_app, gPageBuffer */
 #include "ota_boot_single.h"

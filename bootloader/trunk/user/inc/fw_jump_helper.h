@@ -8,7 +8,6 @@ void run_app(uint32_t appAddr);
 #define PAGE_SIZE             (1024*8)
 
 extern unsigned char Image$$RW_IRAM1$$ZI$$Limit;
-extern uint8 gPageBuffer[PAGE_SIZE];
+extern uint8_t gPageBuffer[PAGE_SIZE];
 
 #endif
-
