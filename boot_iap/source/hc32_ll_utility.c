@@ -283,39 +283,10 @@ __WEAKDEF void DDL_AssertHandler(const char *file, int line)
 
 #if (LL_PRINT_ENABLE == DDL_ON)
 
-/* ---- Standard C library (non-MicroLIB) retarget: disable semihosting ----
- * Required so the full ARMCC library uses the user fputc below instead of
- * the semihosting console I/O (which produces no output without a host). */
-#if (defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
-    __asm(".global __use_no_semihosting\n\t");
-    __asm(".global __ARM_use_no_argv \n\t");
-#else
-    #pragma import(__use_no_semihosting)
-#endif
-
-void _sys_exit(int x)
-{
-    (void)x;
-    for (;;) {
-    }
-}
-
-void _ttywrch(int ch)
-{
-    (void)ch;
-}
-
-char *_sys_command_string(char *cmd, int len)
-{
-    (void)cmd;
-    (void)len;
-    return NULL;
-}
-
 #if (defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)) || \
     (defined (__ICCARM__) && (__VER__ < 9000000)) || (defined (__CC_ARM))
 /**
- * @brief  Re-target fputc function (MicroLIB only).
+ * @brief  Re-target fputc function.
  * @param  [in] ch
  * @param  [in] f
  * @retval int32_t
@@ -326,8 +297,6 @@ int32_t fputc(int32_t ch, FILE *f)
 
     return (LL_OK == DDL_ConsoleOutputChar((char)ch)) ? ch : -1;
 }
-
-
 
 #elif (defined (__ICCARM__) && (__VER__ >= 9000000))
 #include <LowLevelIOInterface.h>

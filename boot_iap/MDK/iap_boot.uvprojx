@@ -473,6 +473,16 @@
               <FileType>1</FileType>
               <FilePath>..\source\hc32_ll_utility.c</FilePath>
             </File>
+            <File>
+              <FileName>hc32_ll_swdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\hc32_ll_swdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_rmu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\hc32_ll_rmu.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -680,7 +690,7 @@
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>1</hadIROM2>
             <StupSel>8</StupSel>
-            <useUlib>1</useUlib>
+            <useUlib>0</useUlib>
             <EndSel>1</EndSel>
             <uLtcg>0</uLtcg>
             <nSecure>0</nSecure>
@@ -963,6 +973,16 @@
               <FileName>hc32_ll_utility.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\hc32_ll_utility.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_swdt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\hc32_ll_swdt.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_rmu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\hc32_ll_rmu.c</FilePath>
             </File>
           </Files>
         </Group>
