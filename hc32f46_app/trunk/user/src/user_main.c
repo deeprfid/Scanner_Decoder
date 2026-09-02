@@ -13,9 +13,6 @@
 #include "ErrChecker.h"
 #include "event_mq.h"
 #include "ipc.h"
-#include "w25qxx.h"      /* OTA: QSPI flash */
-#include "ota_agent.h"   /* OTA: startup check + confirm */
-#include "ota_server.h"  /* OTA: HTTP listen thread */
 /*****************************************************************************
 *绉绘?嶈?存槑
 1锛歞riverlib: 淇?鏀笹PIO_Configuration()锛屾浛鎹?pio.c閲岃竟GPIO鐨勮?剧疆锛屽叧闂瓀iegand_init();鍒濆?嬪寲
@@ -365,7 +362,6 @@ void user_main_active(void)
 
 	get_left_heap_size("after OpenReader");
 	gIsFinInit = 1;
-	ota_agent_confirm();  /* OTA: new fw self-check ok */
 
 	if (gRdrErr != MT_OK_ERR)
 	{
@@ -639,40 +635,16 @@ void user_main_passive(void);
 extern volatile int uart0fd;
 int user_main_httpapi(void);
 
-/* QSPI 自检：读 ID + 擦写读回（用 8MB 末尾扇区 0x7FF000，不影响 OTA 分区） */
-static void qspi_self_test(void)
-{
-    uint8_t wbuf[64], rbuf[64];
-    uint32_t id = W25QXX_ReadID();
-    int i, ok;
-
-    TRACE("[qspi] ID=0x%04X (expect 0xEF16 W25Q64)\n", (unsigned)id);
-    if (id != W25Q64) {
-        TRACE("[qspi] ID MISMATCH - check hardware wiring PB01/02/10/12/13/14!\n");
-    }
-    {
-        /* diag: read SR(05h) + JEDEC ID(9Fh) via W25QXX_Diag */
-        uint8_t sr = 0;
-        uint32_t j = 0;
-        W25QXX_Diag(&sr, &j);
-        TRACE("[qspi] diag SR=0x%02X JEDEC=0x%06X (expect 0xEF4017)\n", (unsigned)sr, (unsigned)j);
-    }
-    if (id == W25Q64) {
-        W25QXX_Erase_Sector(0x007FF000UL);
-        W25QXX_Wait_Busy();
-        for (i = 0; i < 64; i++) wbuf[i] = (uint8_t)i;
-        W25QXX_Write(wbuf, 0x007FF000UL, 64);
-        W25QXX_Wait_Busy();
-        W25QXX_Read(rbuf, 0x007FF000UL, 64);
-        ok = (memcmp(wbuf, rbuf, 64) == 0);
-        TRACE("[qspi] self-test %s (write/read 64B @0x7FF000)\n", ok ? "OK" : "FAIL");
-    }
-}
-
 void user_main(void)
 {
 	int i;
 	int ispassive = 1;
+
+	wait_fin_init();
+	brdcst_conf_init(getMaxSocketId());
+	gCurWorkMode = TestFwType_ex();
+	mp_init(JsonParseMemSize);
+
 #ifdef _DEBUG
 #if (AppDubugPrintf == 1)
 	InitDegutPrintf(1, COMMON_INTERFACE_SOCKET2, "192.168.1.44", 9999);
@@ -680,14 +652,6 @@ void user_main(void)
 	InitDegutPrintf(2, getMaxSocketId(), "192.168.1.44", 9999);
 #endif
 #endif
-	wait_fin_init();
-	W25QXX_Init();          /* OTA: QSPI flash init（必须先于 ota_agent_boot 读状态） */
-	qspi_self_test();       /* 首次使用 QSPI，自检硬件连接 */
-	ota_agent_boot();       /* OTA: check pending confirm (read QSPI state only) */
-	ota_server_start();     /* OTA: HTTP listen thread (listenPort+1) -- 分支前统一启动 */
-	brdcst_conf_init(COMMON_INTERFACE_SOCKET3);   /* 广播固定 socket3（对齐 F4A0，避免动态号与 OTA socket2 冲突） */
-	gCurWorkMode = TestFwType_ex();
-	mp_init(JsonParseMemSize);
 
 	gPRdrStaSet = malloc_hexp(sizeof(ReaderStaticSettings_ST));
 	get_rdr_static_settings(gPRdrStaSet);

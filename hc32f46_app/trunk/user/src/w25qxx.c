@@ -113,21 +113,8 @@ void W25QXX_Init(void)
     /* configuration structure initialization */
     MEM_ZERO_STRUCT(stcQspiInit);
 
-    stc_port_init_t Port_CFG;
-
     /* Configuration peripheral clock */
     PWC_Fcg1PeriphClockCmd(PWC_FCG1_PERIPH_QSPI, Enable);
-
-    /* QSPI 引脚高驱动（对齐 SDK：高速时钟需 PIN_HIGH_DRV） */
-    MEM_ZERO_STRUCT(Port_CFG);
-    Port_CFG.enPinMode  = Pin_Mode_In;
-    Port_CFG.enPinDrv   = Pin_Drv_H;   /* mux pin: drive only, func by PORT_SetFunc */
-    PORT_Init(QSPCK_PORT, QSPCK_PIN, &Port_CFG);
-    PORT_Init(QSNSS_PORT, QSNSS_PIN, &Port_CFG);
-    PORT_Init(QSIO0_PORT, QSIO0_PIN, &Port_CFG);
-    PORT_Init(QSIO1_PORT, QSIO1_PIN, &Port_CFG);
-    PORT_Init(QSIO2_PORT, QSIO2_PIN, &Port_CFG);
-    PORT_Init(QSIO3_PORT, QSIO3_PIN, &Port_CFG);
 
     /* Configuration QSPI pin */
     PORT_SetFunc(QSPCK_PORT, QSPCK_PIN, Func_Qspi, Disable);
@@ -138,24 +125,24 @@ void W25QXX_Init(void)
     PORT_SetFunc(QSIO3_PORT, QSIO3_PIN, Func_Qspi, Disable);
 
     /* Configuration QSPI structure */
-    stcQspiInit.enClkDiv = QspiHclkDiv3;   /* SDK: DIV3 */   /* 168MHz/4=42MHz，W25Q64 标准读限 50MHz（原 DIV2=84MHz 超限读不到） */
-    stcQspiInit.enSpiMode = QspiSpiMode0;   /* SDK例程: MD0 (W25Q64 支持) */
+    stcQspiInit.enClkDiv = QspiHclkDiv2;
+    stcQspiInit.enSpiMode = QspiSpiMode0;
     stcQspiInit.enBusCommMode = QspiBusModeRomAccess;
     stcQspiInit.enPrefetchMode = QspiPrefetchStopComplete;
     stcQspiInit.enPrefetchFuncEn = Disable;
     stcQspiInit.enQssnValidExtendTime = QspiQssnValidExtendNot;
-    stcQspiInit.enQssnIntervalTime = QspiQssnIntervalQsck2;   /* SDK: 2 */   /* SDK: interval 1 */
+    stcQspiInit.enQssnIntervalTime = QspiQssnIntervalQsck8;
     stcQspiInit.enQsckDutyCorr = QspiQsckDutyCorrNot;
     stcQspiInit.enVirtualPeriod = QspiVirtualPeriodQsck8;
-    stcQspiInit.enWpPinLevel = QspiWpPinOutputHigh;   /* AN: WP disable */
-    stcQspiInit.enQssnSetupDelayTime = QspiQssnSetupDelay1Dot5Qsck;   /* SDK: 1.5 */   /* SDK: 0.5 */
-    stcQspiInit.enQssnHoldDelayTime = QspiQssnHoldDelay1Dot5Qsck;   /* SDK: 1.5 */   /* SDK: 0.5 */
+    stcQspiInit.enWpPinLevel = QspiWpPinOutputLow;
+    stcQspiInit.enQssnSetupDelayTime = QspiQssnSetupDelayHalfQsck;
+    stcQspiInit.enQssnHoldDelayTime = QspiQssnHoldDelayHalfQsck;
     stcQspiInit.enFourByteAddrReadEn = Disable;
     stcQspiInit.enAddrWidth = QspiAddressByteThree;
-    stcQspiInit.stcCommProtocol.enReadMode = QspiReadModeFourWiresIO;   /* SDK: QUAD_IO */
-    stcQspiInit.stcCommProtocol.enTransInstrProtocol = QspiProtocolExtendSpi;
-    stcQspiInit.stcCommProtocol.enTransAddrProtocol  = QspiProtocolExtendSpi;
-    stcQspiInit.stcCommProtocol.enReceProtocol       = QspiProtocolExtendSpi;
+    stcQspiInit.stcCommProtocol.enReadMode = QspiReadModeStandard;
+    stcQspiInit.stcCommProtocol.enTransInstrProtocol = QspiProtocolFourWiresSpi;
+    stcQspiInit.stcCommProtocol.enTransAddrProtocol  = QspiProtocolFourWiresSpi;
+    stcQspiInit.stcCommProtocol.enReceProtocol       = QspiProtocolFourWiresSpi;
     stcQspiInit.u8RomAccessInstr = QSPI_3BINSTR_STANDARD_READ;
     QSPI_Init(&stcQspiInit);
     /* Read Flash ID */
@@ -246,7 +233,6 @@ void W25QXX_Write_Disable(void)
  **  0XEF17: W25Q128
  **
  ******************************************************************************/
-
 uint16_t W25QXX_ReadID(void)
 {
     uint16_t u16FlashID = 0u;
@@ -262,26 +248,6 @@ uint16_t W25QXX_ReadID(void)
     return u16FlashID;
 }
 
-/* QSPI diagnostic: read SR(05h) + JEDEC ID(9Fh) */
-void W25QXX_Diag(uint8_t *pSR, uint32_t *pJEDEC)
-{
-    uint8_t sr = 0u, jed[3] = {0, 0, 0};
-
-    QSPI_EnterDirectCommMode();
-    QSPI_WriteDirectCommValue(W25X_ReadStatusReg);
-    sr = QSPI_ReadDirectCommValue();
-    QSPI_ExitDirectCommMode();
-
-    QSPI_EnterDirectCommMode();
-    QSPI_WriteDirectCommValue(0x9F);
-    jed[0] = QSPI_ReadDirectCommValue();
-    jed[1] = QSPI_ReadDirectCommValue();
-    jed[2] = QSPI_ReadDirectCommValue();
-    QSPI_ExitDirectCommMode();
-
-    if (pSR) *pSR = sr;
-    if (pJEDEC) *pJEDEC = ((uint32_t)jed[0] << 16) | ((uint32_t)jed[1] << 8) | jed[2];
-}
 /**
  *******************************************************************************
  ** \brief W25QXX read flash content

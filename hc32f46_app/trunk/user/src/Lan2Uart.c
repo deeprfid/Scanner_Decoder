@@ -7,8 +7,6 @@
 #include "mp_pool.h"
 #include "reader_init.h"
 #include "http_reader_api.h"
-#include "ota_server.h"   /* OTA: HTTP listen thread */
-#include "ota_agent.h"    /* OTA: 新固件自检确认 */
 
 volatile int gIsModAPICtrl = 0;
 volatile int gIsUnlockUart0 = 0;
@@ -502,8 +500,6 @@ void user_main_passive(void)
     ioctl(COMMON_INTERFACE_SOCKET0, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
     ioctl(COMMON_INTERFACE_SOCKET1, COMMON_INTERFACE_SET_TIMEOUT, &m_rtm);
 
-    //ota_agent_confirm(); /* OTA 暂时禁用 */
-
     while (1)
     {
         gCurInfFd = apt_multi_infs_select(pApt_st, uarts, uartcnt, NULL, 0);
@@ -512,7 +508,6 @@ void user_main_passive(void)
         {
             TRACE("if (gCurInfFd == -1)\n");
             system_reset();
-					  break;
         }
 
         if (gCurInfFd <= COMMON_INTERFACE_SOCKET1)
