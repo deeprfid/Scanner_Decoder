@@ -1202,7 +1202,7 @@ void firmware_upgrade_process(void *arg)
 	int m_rtm = 300;
 	uint8 recvbuf[100];
 	uint64 lastacttm;
-	int lstsock = getMaxSocketId();
+	int lstsock = COMMON_INTERFACE_SOCKET1;   /* PC 8080 fixed SOCKET1 (F4A0 v9.81t-b) */
 	
 	wait_fin_init();
 /***********************************************************************/
@@ -1299,8 +1299,13 @@ void init_osThreadAttr_t(osThreadAttr_t *attr, int stacksize, osPriority_t prio)
 extern int gMaxAvailableSocket;
 int getMaxSocketId()
 {
-	gMaxAvailableSocket--;
-	return gMaxAvailableSocket;
+    /* F4A0 v9.81t-b: first SOCK_CLOSED from 0; fixed listeners hold own sockets. -1 if none */
+    int s;
+    for (s = 0; s < _WIZCHIP_SOCK_NUM_; ++s) {
+        if (getSn_SR((uint8_t)s) == SOCK_CLOSED)
+            return s;
+    }
+    return -1;
 }
 
 void led_toggle(int dur, int cycle, void (*cb)(void))

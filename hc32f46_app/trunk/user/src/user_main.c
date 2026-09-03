@@ -15,6 +15,7 @@
 #include "ipc.h"
 #include "ota_agent.h"   /* OTA */
 #include "ota_server.h"  /* OTA */
+#include "ota_http.h"   /* OTA single-thread dispatch */
 /*****************************************************************************
 *绉绘?嶈?存槑
 1锛歞riverlib: 淇?鏀笹PIO_Configuration()锛屾浛鎹?pio.c閲岃竟GPIO鐨勮?剧疆锛屽叧闂瓀iegand_init();鍒濆?嬪寲
@@ -710,8 +711,8 @@ void user_main(void)
 
 #endif		
 	/* OTA: QSPI(W25QXX) 已初始化后再查状态/起监听 */
-	ota_agent_boot();      /* OTA: check pending NEED_CONFIRM */
-	ota_server_start();    /* OTA: HTTP listen (listenPort+1) */
+	ota_agent_boot();      /* OTA: check pending NEED_CONFIRM (socket 分配已修：fw-upgrade=SOCKET1, getMaxSocketId 跳保留号) */
+	ota_server_start();    /* OTA: 独立 HTTP dispatch 线程(SOCKET2, listenPort+1)，与 F4A0 同构 */
 	if (ispassive == 1)
 	{
 		TRACE("run user_main_passive\n");

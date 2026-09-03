@@ -98,6 +98,18 @@ void w5100s_spi_writebyte(uint8_t wb)
 		SPI1_SendByte(wb);
 }
 
+/* burst SPI (F4A0 parity): single-call bulk transfer, fewer per-byte indirections */
+void SPI_WriteDatas(uint8_t *data, uint16_t len)
+{
+    while (len--)
+        SPI1_SendByte(*data++);
+}
+void SPI_ReadDatas(uint8_t *data, uint16_t len)
+{
+    while (len--)
+        *data++ = SPI1_SendByte(0x00);
+}
+
 
 void rdr_ip_conflict(void)
 {
@@ -260,6 +272,7 @@ Spi_Ex_Code detect_spi_ex_dev(void)
 	Reset_W5100S();
 	reg_wizchip_cs_cbfunc(w5100s_cs_select, w5100s_cs_deselect);
 	reg_wizchip_spi_cbfunc(w5100s_spi_readbyte, w5100s_spi_writebyte);
+	reg_wizchip_spiburst_cbfunc(SPI_ReadDatas, SPI_WriteDatas);
    setSHAR((uint8_t *)DefMac);
    getSHAR(mac);
 	if (memcmp(DefMac, mac, 6) == 0)
@@ -297,6 +310,7 @@ int network_init(int dhcpsn)
 	Reset_W5100S();
 	reg_wizchip_cs_cbfunc(w5100s_cs_select, w5100s_cs_deselect);
 	reg_wizchip_spi_cbfunc(w5100s_spi_readbyte, w5100s_spi_writebyte);
+	reg_wizchip_spiburst_cbfunc(SPI_ReadDatas, SPI_WriteDatas);
 	
 #if IS_RTOS2_SUPPORT
 	reg_wizchip_cris_cbfunc(cris_mutex_en, cris_mutex_ex);
