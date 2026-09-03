@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#pragma diag_suppress 1293   /* 抑制 AC5 1293：第三方/遗留代码良性警告 */
 
 static void NewMessageData(MessageData* md, MQTTString* aTopicName, MQTTMessage* aMessage) {
     md->topicName = aTopicName;

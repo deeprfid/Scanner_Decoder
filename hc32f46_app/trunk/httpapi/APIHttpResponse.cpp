@@ -3,6 +3,7 @@
 #include "APIHttpResponse.h"
 #include "Utility.h"
 #include "hc32f46_driver.h"
+#pragma diag_suppress 111   /* 抑制 AC5 111：第三方/遗留代码良性警告 */
 
 #define SERVER_STRING "Server: BMAutomation UHF RFID/0.0.1\r\n"
 

@@ -8,6 +8,7 @@
 #include "reader_init.h"
 #include "http_reader_api.h"
 #include "ota_agent.h"   /* OTA confirm */
+#pragma diag_suppress 111   /* 抑制 AC5 111：第三方/遗留代码良性警告 */
 
 volatile int gIsModAPICtrl = 0;
 volatile int gIsUnlockUart0 = 0;

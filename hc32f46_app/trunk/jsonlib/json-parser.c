@@ -42,6 +42,7 @@ const struct _json_value json_value_none;
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#pragma diag_suppress 1293   /* 抑制 AC5 1293：第三方/遗留代码良性警告 */
 
 typedef unsigned int json_uchar;
 
