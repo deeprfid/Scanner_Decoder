@@ -24,7 +24,7 @@ void WIZ_SPI_Init(void)
     PORT_SetFunc(PortA, Pin07, Func_Spi1_Mosi, Disable);
     PORT_SetFunc(PortA, Pin06, Func_Spi1_Miso, Disable);
     /* Configuration SPI structure */
-    stcSpiInit.enClkDiv = SpiClkDiv4;  //64M/4=16M
+    stcSpiInit.enClkDiv = SpiClkDiv2;  // 200M: PCLK1=100M -> 50MHz（用户实测 W5100S SPI 支持至 70M，Div2 稳定）
     stcSpiInit.enFrameNumber = SpiFrameNumber1;//1帧
     stcSpiInit.enDataLength = SpiDataLengthBit8;//8bits
     stcSpiInit.enFirstBitPosition = SpiFirstBitPositionMSB;//MSB

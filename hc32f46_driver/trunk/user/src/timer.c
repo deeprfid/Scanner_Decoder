@@ -8,7 +8,7 @@ uint32	 Timermslastva;
 uint64_t  getSysTick(void)//»ñÈ¡ÏµÍ³Ê±¼ä£¬µ¥Î»ms
 {
     uint32   tcount = TIMERA_GetCurrCount(M4_TMRA4);
-		return ( (512*gSysTickCnt)+(tcount/80) );
+		return ( (512*gSysTickCnt)+(tcount/98) );   /* PCLK1 100MHz/1024 -> 97.66cnt/ms */
 }
 
 
@@ -142,38 +142,16 @@ void timer_Delay_us(unsigned int us)	//Î¢Ãî¼¶ÑÓÊ±£¬µ÷ÓÃºóµÈ´ýÑÓÊ±½áÊø²ÅÍË³ö¸Ãº¯Ê
 }
 
 
-void timer_Delay_ms(unsigned int ms)	//ºÁÃë¼¶ÑÓÊ±£¬µ÷ÓÃºóµÈ´ýÑÓÊ±½áÊø²ÅÍË³ö¸Ãº¯Êý,×î³¤0xffffffff ms
+void timer_Delay_ms(unsigned int ms) //ms ÑÓÊ±£º°´ 1ms ·Ö¿é£¨TMRA3 16bit ÉÏÏÞ 65535£»Ô­ 3000*ONEUSC ÔÚ ONEUSC>=22 Òç³öËÀÑ­»·£©
 {
     uint32 tm;
 
-    if (ms/3>0) //>3ms
-    {
-        for(tm=0; tm<ms/3; tm++)
-        {   TIMERA_Cmd(M4_TMRA3, Disable);
-            TIMERA_SetCurrCount(M4_TMRA3,0);
-            TIMERA_Cmd(M4_TMRA3, Enable);
-            while (TIMERA_GetCurrCount(M4_TMRA3)<(3000*ONEUSC) )
-            {
-//                SWDT_RefreshCounter();
-            }
-        }
-        if(ms%3>0)
-        {   TIMERA_Cmd(M4_TMRA3, Disable);
-            TIMERA_SetCurrCount(M4_TMRA3,0);
-            TIMERA_Cmd(M4_TMRA3, Enable);
-            while (TIMERA_GetCurrCount(M4_TMRA3)<(ms%3)*1000*ONEUSC)
-            {
-//                SWDT_RefreshCounter();
-            }
-        }
-    }
-    else
+    for (tm = 0; tm < ms; tm++)
     {   TIMERA_Cmd(M4_TMRA3, Disable);
-        TIMERA_SetCurrCount(M4_TMRA3,0);
+        TIMERA_SetCurrCount(M4_TMRA3, 0);
         TIMERA_Cmd(M4_TMRA3, Enable);
-        while (TIMERA_GetCurrCount(M4_TMRA3)<(ms*1000*ONEUSC) )
+        while (TIMERA_GetCurrCount(M4_TMRA3) < (1000UL * ONEUSC))
         {
-//            SWDT_RefreshCounter();
         }
     }
 }
@@ -242,7 +220,7 @@ void timer4_ini(void)//512msÖÐ¶ÏÒ»´Î£¬ÓÃÓÚms ³¤Ê±¼ä¼ÆÊ±
     stcTimeraInit.enCntMode = TimeraCountModeSawtoothWave;  //¾â³Ý²¨
     stcTimeraInit.enCntDir = TimeraCountDirUp;
     stcTimeraInit.enSyncStartupEn = Disable;  //Í¬²½Æô¶¯¹Ø±Õ
-    stcTimeraInit.u16PeriodVal = (42000-1);  //512ms Òç³öÖÐ¶Ï
+    stcTimeraInit.u16PeriodVal = (50000-1);  //512ms Òç³öÖÐ¶Ï @PCLK1 100MHz/1024
     TIMERA_BaseInit(M4_TMRA4, &stcTimeraInit);
 
     stcIrqRegiConf.enIntSrc = INT_TMRA4_OVF;

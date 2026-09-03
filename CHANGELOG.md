@@ -43,3 +43,17 @@
 - 系统主频：app 侧 168MHz（MPLL 8M/1x42/2，boot 为 200MHz 8M/1x50/2）；
   W5100S SPI = PCLK1(84MHz)/4 = 21MHz（Div2=42MHz 超 W5100S 33.3MHz 上限，未提）。
 - 教训：F460 上所有"每轮 sleep_ms(1) 让出"的独立线程都是忙转，需用 osDelay(>=1) 真阻塞。
+## 2026-09-04 主频 168MHz -> 200MHz（driver 库，时钟/定时器按比例修改）
+
+### 改动（hc32f46_driver/trunk）
+- common.c / sysinit.c ClkInit：MPLL plln 42->50（8M/1x50/2=200M）+ 启用 PWC_HS2HP()（>150M 高性能模式，同 boot）
+- timer.h：ONEMSC 82->98、ONEUSC 21->25（PCLK1 84M->100M）
+- timer.c：getSysTick tcount/80->/98；TMRA4 512ms 周期 42000->50000
+- 修复 timer_Delay_ms 16 位计数溢出死循环：原按 3ms 分块等 3000xONEUSC，ONEUSC=25 时 75000>65535 永不退出（曾卡在 W5100S Reset_W5100S 的 100ms/1000ms 延时，表现 app 跳转后无输出）；改按 1ms 分块（1000xONEUSC=25000 安全）
+- wizchip/port.c：W5100S SPI Div2（PCLK1 100M/2=50MHz，用户实测 W5100S 支持至 70M）
+- QSPI 时钟统一 HCLK/2=100MHz（app w25qxx.c QspiHclkDiv2 不变；boot boot_qspi.c QSPI_CLK_DIV3->DIV2，boot 与 app 一致；W25Q64 上限内）
+
+### 验证
+- 200MHz 全链路：boot 跳转 / 被动+主动业务 / HTTP OTA 均正常
+- 期间"上位机不通/HTTP OTA 不通"经查为全片擦除导致 IP/配置丢默认，与主频无关，重存配置即恢复
+- 附带收益：SystemCoreClock(200M) 与实际主频一致；UART 波特率运行时按 PCLK 计算自动对齐；W5100S SPI 21->25MHz、QSPI HCLK/2 84->100MHz

@@ -55,9 +55,9 @@ static void ClkInit(void)
     /* MPLL config. */  //8M /1 x42 /2=168M
 	 
     stcMpllCfg.pllmDiv =1ul;
-    stcMpllCfg.plln = 42ul;
+    stcMpllCfg.plln = 50ul;   /* 8M/1*50/2=200M */
     //  stcMpllCfg.pllmDiv = 2ul;
-    //  stcMpllCfg.plln = 42ul;
+    //  stcMpllCfg.plln = 50ul;   /* 8M/1*50/2=200M */
 //    stcMpllCfg.PllpDiv = 4ul;
 //    stcMpllCfg.PllqDiv = 4ul;
 //    stcMpllCfg.PllrDiv = 4ul;
@@ -88,7 +88,7 @@ static void ClkInit(void)
     {
     }
 
-//	 PWC_HS2HP();
+	PWC_HS2HP();  /* 200MHz 高性能模式（同 boot，>150M 必需） */
     /* Switch system clock source to MPLL. */
     CLK_SetSysClkSource(CLKSysSrcMPLL);
 }

@@ -5,8 +5,8 @@
 #include "hc32_ddl.h"
 #include  "type.h"
 
-#define  ONEMSC   82
-#define  ONEUSC   21
+#define  ONEMSC   98   /* PCLK1 100MHz/1024/1000 */
+#define  ONEUSC   25   /* PCLK1 100MHz/4/1000000 */
 
 
 uint64_t  getSysTick(void);//获取系统时间，单位ms

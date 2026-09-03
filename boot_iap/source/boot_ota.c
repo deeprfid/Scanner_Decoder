@@ -312,6 +312,7 @@ static void boot_ota_jump_app(void)
         if ((u32Reset >= BOOT_APP_BASE) && (u32Reset < 0x00080000UL) &&
             (0UL != (u32Reset & 1UL))) {
             printf("BOOT: jump app\r\n");
+						DDL_DelayMS(100);	
             /* 降频回 MRC + 关 PLL/XTAL（官方 IAP_CLK_DeInit 流程） */
             LL_PERIPH_WE(BOOT_PERIPH_WE_SEL);
             CLK_SetSysClockSrc(CLK_SYSCLK_SRC_MRC);
