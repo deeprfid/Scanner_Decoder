@@ -17,7 +17,8 @@ Version source: OTA_FW_VERSION in hc32f46_app/trunk/user/inc/ota_layout.h
 """
 import os, re, sys, hashlib, subprocess, shutil, datetime
 SCAN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # Scanner_20260901/
-APP_BIN   = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.bin")
+APP_BIN   = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.bin")   # 旧产物（不推荐用于打包，见 APP_HEX）
+APP_HEX   = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.hex")   # App 当前链接基址 0x10000
 VHDR      = os.path.join(SCAN, "hc32f46_app", "trunk", "user", "inc", "ota_layout.h")
 RELEASE   = os.path.join(SCAN, "release")
 TOOLS     = os.path.join(SCAN, "tools")                    # 本工程 tools（完全独立，不依赖主仓库）
@@ -28,10 +29,9 @@ OTA_PACK  = os.path.join(TOOLS, "ota_pack.py")
 UV4 = os.environ.get("KEIL_UV4", r"D:\Keil_v5\UV4\UV4.exe")
 PROJECTS = [
     ("driver", os.path.join(SCAN, "hc32f46_driver", "trunk", "hc32f46_driver.uvprojx")),
-    ("boot",   os.path.join(SCAN, "bootloader", "trunk", "HC32F460JEUABootloader.uvprojx")),
+    ("boot",   os.path.join(SCAN, "boot_iap", "MDK", "iap_boot.uvprojx")),
     ("app",    os.path.join(SCAN, "hc32f46_app", "trunk", "firmware_t.uvprojx")),
 ]
-# boot 专用 lib（IS_RTOS2=0，无 main.o）已预编译固定于 driver_lib/hc32f46_boot.lib
 
 
 def get_version():
@@ -93,16 +93,14 @@ def main():
 
     # locate boot hex + app hex/bin
     boot_hex = None
-    for cand in os.listdir(os.path.join(SCAN, "bootloader", "trunk", "output")):
+    for cand in os.listdir(os.path.join(SCAN, "boot_iap", "MDK", "output", "debug")):
         if cand.endswith(".hex"):
-            boot_hex = os.path.join(SCAN, "bootloader", "trunk", "output", cand)
+            boot_hex = os.path.join(SCAN, "boot_iap", "MDK", "output", "debug", cand)
     if not boot_hex:
-        sys.exit("bootloader output .hex not found (compile boot first)")
+        sys.exit("boot_iap output .hex not found (compile boot first)")
     app_hex = os.path.join(SCAN, "hc32f46_app", "trunk", "output", "Firmware.hex")
     if not os.path.exists(app_hex):
         sys.exit("app output Firmware.hex not found (compile app first)")
-    if not os.path.exists(APP_BIN):
-        sys.exit("app output Firmware.bin not found (compile app first)")
 
     os.makedirs(RELEASE, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -112,8 +110,9 @@ def main():
 
     # 1) DAP-LINK merged bin (boot@0x0 64KB + app@0x10000, 两个 hex 合并)
     run(["python", MERGE_BIN, boot_hex, app_hex, "-o", merged])
-    # 2) upgrade package (HTTP channel, platform=1=F460, payload 用 bin)
-    run(["python", OTA_PACK, APP_BIN, "--version", verstr, "--platform", "1", "-o", pkg])
+    # 2) upgrade package (HTTP channel, platform=1=F460, payload 从最新 Firmware.hex 取，
+    #    基址 0x10000 起即为 boot commit 写入片内 0x10000 的完整 App 镜像)
+    run(["python", OTA_PACK, app_hex, "--version", verstr, "--platform", "1", "-o", pkg])
     # 3) FW.BIN fixed name
     shutil.copyfile(pkg, fwbin)
     # 3) FW.BIN fixed name

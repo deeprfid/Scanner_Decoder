@@ -702,7 +702,7 @@ void rd_idkey_fun(void)
     static uint32_t uuid;
     uuid = Ucode_read((uint8_t *)&uuid, sizeof(uuid));
 
-    if (uuid != 0x42BC1639)
+    if (uuid != 0x42BC6388)
     {
         for(uint8_t i = 0; i < 3; i++)
         {
@@ -725,10 +725,10 @@ void rd_idkey_fun(void)
         {
             beep_on();
             RED_LED_ON();
-            osDelay(20);
+            osDelay(40);
             beep_off();
             RED_LED_OFF();
-            osDelay(20);
+            osDelay(40);
         }
     }
 }
