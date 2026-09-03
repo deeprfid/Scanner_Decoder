@@ -33,7 +33,7 @@ extern uint8 gWgGytes;
 //#define MaxActModeTbMemSize (1024*94)
 //#define MaxActModeTbMemSize (1024*60)
 #define JsonParseMemSize (1024*20)
-#define AppDubugPrintf 0
+#define AppDubugPrintf 1
 #define DynMemReserveSize (1024*30)
 #define MbedTLSDynMemSize (1024*35)
 #define ReaderCppMemSize (1024*3)

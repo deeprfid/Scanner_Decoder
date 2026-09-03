@@ -13,6 +13,8 @@
 #include "ErrChecker.h"
 #include "event_mq.h"
 #include "ipc.h"
+#include "ota_agent.h"   /* OTA */
+#include "ota_server.h"  /* OTA */
 /*****************************************************************************
 *绉绘?嶈?存槑
 1锛歞riverlib: 淇?鏀笹PIO_Configuration()锛屾浛鎹?pio.c閲岃竟GPIO鐨勮?剧疆锛屽叧闂瓀iegand_init();鍒濆?嬪寲
@@ -26,7 +28,7 @@
 	#define Custom_By_GZTD      0
 	#define Custom_By_HZWXZN    0
 	#define Custom_By_SZBMA     1
-4: 淇?鏀筨oot鍚?鍔ㄥ湴鍧�
+4: 淇?鏀筨oot鍚?鍔ㄥ湴鍧�
 *
 *
 *
@@ -382,6 +384,8 @@ void user_main_active(void)
 	TRACE("Reader initialization is finished\n");
 
 	led_on();
+        if (gRdrErr == MT_OK_ERR)
+            ota_agent_confirm();  /* OTA: new fw self-check ok */
 	//////gpi trigger
 	if (gRtSetting->gpi_trigger.is_gpi_trigger == 1)
 	{
@@ -641,7 +645,7 @@ void user_main(void)
 	int ispassive = 1;
 
 	wait_fin_init();
-	brdcst_conf_init(getMaxSocketId());
+	brdcst_conf_init(COMMON_INTERFACE_SOCKET3);   /* fixed S3, keep S2 for OTA */
 	gCurWorkMode = TestFwType_ex();
 	mp_init(JsonParseMemSize);
 
@@ -705,6 +709,9 @@ void user_main(void)
 	tagfiltbuff_init();
 
 #endif		
+	/* OTA: QSPI(W25QXX) 已初始化后再查状态/起监听 */
+	ota_agent_boot();      /* OTA: check pending NEED_CONFIRM */
+	ota_server_start();    /* OTA: HTTP listen (listenPort+1) */
 	if (ispassive == 1)
 	{
 		TRACE("run user_main_passive\n");

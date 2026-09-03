@@ -193,7 +193,7 @@ void init_thread(void *arg)
 		{
 			init_osThreadAttr_t(&thAttr_t, 1536, osPriorityNormal);
 			osThreadNew(firmware_upgrade_process, NULL, &thAttr_t);
-			TRACE("firmware_upgrade_process thid:%p\n", thid);	
+			//TRACE("firmware_upgrade_process thid:%p\n", thid);	
 		}
 		
 		TRACE("is_enable_fwupdate:%d\n", is_enable_fwupdate);

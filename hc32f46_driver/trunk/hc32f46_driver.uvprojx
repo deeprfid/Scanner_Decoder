@@ -337,7 +337,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls>--diag_suppress=186,66</MiscControls>
-              <Define>USE_DEVICE_DRIVER_LIB,HC32F460,BSP_EV_HC32F460_LQFP100_V2</Define>
+              <Define>_DEBUG,USE_DEVICE_DRIVER_LIB,HC32F460,BSP_EV_HC32F460_LQFP100_V2</Define>
               <Undefine></Undefine>
               <IncludePath>.\DHCP;.\DNS;.\FTPClient;.\FWlib\inc;.\user\inc;.\wizchip\W5100S;.\wizchip;.\rtos2_help;.\;.\usb_lib\device_class\custom_hid;.\usb_lib\device_class\hid_cdc_composite;.\usb_lib\device_class\single_cdc;.\usb_lib\device_core;.\usb_lib\examp;.\usb_lib\usb_core;.\usb_lib\device_class\hid_keyboard;..\..\driver_lib</IncludePath>
             </VariousControls>

@@ -117,6 +117,7 @@ void W25QXX_Read(uint8_t* pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead);
 void W25QXX_Write(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
 void W25QXX_Erase_Chip(void);
 void W25QXX_Erase_Sector(uint32_t Dst_Addr);
+void W25QXX_Erase_Block_64K(uint32_t ByteAddr);   /* 64KB block erase, ByteAddr = ×Ö½ÚµØÖ· */
 void W25QXX_Wait_Busy(void);
 void W25QXX_PowerDown(void);
 void W25QXX_WAKEUP(void);

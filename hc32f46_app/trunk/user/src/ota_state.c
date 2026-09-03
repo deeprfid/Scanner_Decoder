@@ -1,10 +1,10 @@
 /**
  * @file ota_state.c
- * @brief F460 升级状态存储（QSPI 扇区直存，替代 FlashDB——少一个依赖，掉电安全）
+ * @brief F460 升级状�1�7�存储（QSPI 扇区直存，替仄1�7 FlashDB—�1�7�少丄1�7个依赖，掉电安全＄1�7
  *
- * 布局：QSPI 备用区 0xF00000 4KB 扇区（OTA_STATE_SECTOR_BASE）
+ * 布局：QSPI 备用匄1�7 0xF00000 4KB 扇区（OTA_STATE_SECTOR_BASE＄1�7
  * 结构 24B：magic + flags + size + version + boot_count + progress + result + crc32
- * 写策略：先擦扇区再写整结构（4KB 扇区对齐，掉电只会丢整块——靠 crc 判失效）
+ * 写策略：先擦扇区再写整结构（4KB 扇区对齐，掉电只会丢整块—�1�7�靠 crc 判失效）
  */
 #include <string.h>
 #include "hc32f46_driver.h"   /* TRACE, __disable_irq */
@@ -42,7 +42,7 @@ static uint32_t crc32_update(uint32_t crc, const uint8_t *buf, uint32_t len)
 typedef struct {
     uint32_t magic;
     uint32_t flags;        /* NEED_COMMIT | NEED_CONFIRM */
-    uint32_t size;         /* 新固件 payload 长度 */
+    uint32_t size;         /* 新固仄1�7 payload 长度 */
     uint32_t version;
     uint32_t boot_count;
     uint32_t progress;     /* 下载进度 */
@@ -64,10 +64,10 @@ static int rec_write(const ota_state_rec_t *r)
 {
     ota_state_rec_t tmp = *r;
     tmp.crc32 = crc32_update(0, (const uint8_t *)r, 28);
-    /* 先擦 4KB 扇区再写（页编程） */
-    W25QXX_Erase_Sector(OTA_STATE_SECTOR_BASE);
+    /* 先擦 4KB 扇区再写（页编程＄1�7 */
+    W25QXX_Erase_Sector(OTA_STATE_SECTOR_BASE / 4096UL);   /* Erase_Sector ����Ϊ�����������޸����ֽڵ�ַ���4096����ؾ������ݴ����� */
     W25QXX_Wait_Busy();
-    /* 24B 单次页编程 */
+    /* 24B 单次页编稄1�7 */
     W25QXX_Write((uint8_t *)&tmp, OTA_STATE_SECTOR_BASE, sizeof(tmp));
     W25QXX_Wait_Busy();
     return 0;
@@ -76,7 +76,7 @@ static int rec_write(const ota_state_rec_t *r)
 /* ---- ota_state.h 接口 ---- */
 void ota_state_init(void)
 {
-    /* 无特殊初始化；首次读无效即 IDLE */
+    /* 无特殊初始化；首次读无效卄1�7 IDLE */
 }
 
 ota_state_t ota_state_run(void)
@@ -87,6 +87,8 @@ ota_state_t ota_state_run(void)
         if (r.size > 0) return OTA_STATE_READY;
         return OTA_STATE_DOWNLOADING;
     }
+    /* boot �� commit ���� NEED_CONFIRM���¹̼��Լ��ȷ�ϣ���ͬ READY */
+    if (r.flags & OTA_STATE_FLAG_NEED_CONFIRM) return OTA_STATE_READY;
     return OTA_STATE_IDLE;
 }
 

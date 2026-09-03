@@ -373,7 +373,7 @@ void W25QXX_Write(uint8_t* pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite)
 //    printf("ad:%X,nb:%X\r\n",WriteAddr,NumByteToWrite);           // for test
     if (NumByteToWrite <= secremain)
     {
-        secremain = NumByteToWrite;                                //銆�less than 4K
+        secremain = NumByteToWrite;                                //銆�less than 4K
     }
     while (1)
     {
@@ -462,6 +462,20 @@ void W25QXX_Erase_Sector(uint32_t Dst_Addr)
     QSPI_WriteDirectCommValue((uint8_t)((Dst_Addr) >> 16u));
     QSPI_WriteDirectCommValue((uint8_t)((Dst_Addr) >> 8u));
     QSPI_WriteDirectCommValue((uint8_t)Dst_Addr);
+    QSPI_ExitDirectCommMode();
+    W25QXX_Wait_Busy();
+}
+
+void W25QXX_Erase_Block_64K(uint32_t ByteAddr)
+{
+    ByteAddr &= ~0xFFFFul;   /* 64KB 对齐 */
+    W25QXX_Write_Enable();
+    W25QXX_Wait_Busy();
+    QSPI_EnterDirectCommMode();
+    QSPI_WriteDirectCommValue(W25X_BlockErase);
+    QSPI_WriteDirectCommValue((uint8_t)(ByteAddr >> 16u));
+    QSPI_WriteDirectCommValue((uint8_t)(ByteAddr >> 8u));
+    QSPI_WriteDirectCommValue((uint8_t)ByteAddr);
     QSPI_ExitDirectCommMode();
     W25QXX_Wait_Busy();
 }

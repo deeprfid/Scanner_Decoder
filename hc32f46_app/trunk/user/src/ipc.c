@@ -674,7 +674,7 @@ void tagfiltbuff_init(void)
     set_eas_defualt();
     httpbuf_init();
     HPM6340msg_init();
-//    W25QXX_Init();
+    W25QXX_Init();   /* QSPI(W25Q64) 初始化：OTA 暂存/备份/状态区读写依赖（boot 自检已过） */
     osMutexAttr_t mux_attr =
     {
         NULL,

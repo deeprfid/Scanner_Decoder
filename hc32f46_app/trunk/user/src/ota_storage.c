@@ -1,8 +1,8 @@
 /**
  * @file ota_storage.c
- * @brief F460 存储后端：QSPI 暂存（w25qxx）+ 通道互斥
- * @note F460 不做片内 AB swap；commit（暂存→片内+备份）由 bootloader single-bak 实现。
- *       本文件只负责暂存区读写/校验/擦除，与 F4A0 同构接口。
+ * @brief F460 存储后端：QSPI 暂存（w25qxx＄1�7+ 通道互斥
+ * @note F460 不做片内 AB swap；commit（暂存→片内+备份）由 bootloader single-bak 实现〄1�7
+ *       本文件只负责暂存区读冄1�7/校验/擦除，与 F4A0 同构接口〄1�7
  */
 #include <string.h>
 #include "hc32f46_driver.h"
@@ -36,9 +36,9 @@ static uint32_t crc32_update(uint32_t crc, const uint8_t *buf, uint32_t len)
 int ota_storage_prepare(uint32_t total_size)
 {
     uint32_t remain = (total_size > OTA_QSPI_STAGE_SIZE) ? OTA_QSPI_STAGE_SIZE : total_size;
-    /* w25qxx 64KB 块擦（0xD8） */
+    /* w25qxx 64KB 块擦＄1�70xD8＄1�7 */
     for (uint32_t off = 0; off < remain; off += 65536) {
-        W25QXX_Erase_Sector(OTA_QSPI_STAGE_BASE + off);   /* 注：Sector=4KB；此处用 4KB 循环兼容 */
+        W25QXX_Erase_Sector((OTA_QSPI_STAGE_BASE + off) / 4096UL);   /* �������� */   /* 注：Sector=4KB；此处用 4KB 循环兼容 */
     }
     W25QXX_Wait_Busy();
     return 0;
@@ -48,10 +48,11 @@ int ota_storage_write_stage(const uint8_t *data, uint32_t len, uint32_t offset)
 {
     if (offset + len > OTA_QSPI_STAGE_SIZE)
         return -1;
-    /* w25qxx 页编程 ≤256B/页，W25QXX_Write 内部处理跨页；单次 ≤0xFFFF */
+    /* w25qxx 页编稄1�7 ≄1�7256B/页，W25QXX_Write 内部处理跨页；单欄1�7 ≄1�70xFFFF */
     while (len > 0) {
         uint32_t n = (len > 0xFFFFUL) ? 0xFFFFUL : len;
-        W25QXX_Write((uint8_t *)data, OTA_QSPI_STAGE_BASE + offset, (uint16_t)n);
+        /* �ݴ�������Ԥ����(FF)��ֱ���ô�ҳ��̣����� W25QXX_Write ���������ض�(����) */
+        W25QXX_Write_NoCheck((uint8_t *)data, OTA_QSPI_STAGE_BASE + offset, (uint16_t)n);
         W25QXX_Wait_Busy();
         offset += n; data += n; len -= n;
     }
@@ -69,7 +70,7 @@ int ota_storage_verify_stage(uint32_t size)
         remain -= n;
     }
     (void)crc;
-    return 0;   /* 调用方用 verify_payload 做期望值比对 */
+    return 0;   /* 调用方用 verify_payload 做期望�1�7�比寄1�7 */
 }
 
 int ota_storage_verify_payload(uint32_t payload_off, uint32_t payload_len, uint32_t expected_crc32)
@@ -85,7 +86,7 @@ int ota_storage_verify_payload(uint32_t payload_off, uint32_t payload_len, uint3
     return (crc == expected_crc32) ? 0 : -2;
 }
 
-/* commit 由 bootloader single-bak 实现；App 侧仅提供暂存读（boot 校验用，可选） */
+/* commit 甄1�7 bootloader single-bak 实现；App 侧仅提供暂存读（boot 校验用，可�1�7�） */
 int ota_storage_read_stage(uint32_t off, uint8_t *buf, uint32_t len)
 {
     if (off + len > OTA_QSPI_STAGE_SIZE)
@@ -94,7 +95,7 @@ int ota_storage_read_stage(uint32_t off, uint8_t *buf, uint32_t len)
     return 0;
 }
 
-/* ---- 通道互斥（HTTP 单通道也要防并发） ---- */
+/* ---- 通道互斥（HTTP 单�1�7�道也要防并发） ---- */
 static uint8_t s_ota_channel_busy = 0;
 int ota_channel_try_acquire(void)
 {

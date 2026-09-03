@@ -1,8 +1,8 @@
 /**
  * @file ota_http.c
- * @brief F460 HTTP OTA 通道：设备 HTTP 服务器，浏览器/上位机 POST 整包 .otapkg
- *        （与 F4A0 ota_http 同构；由 F460 httpServer 路由 /ota 调用 http_handle_conn）
- * Usage: 浏览器 fetch POST http://<dev-ip>:<port>/ota  (body = .otapkg 文件)
+ * @brief F460 HTTP OTA 通道：设处1�7 HTTP 服务器，浏览噄1�7/上位朄1�7 POST 整包 .otapkg
+ *        （与 F4A0 ota_http 同构；由 F460 httpServer 路由 /ota 调用 http_handle_conn＄1�7
+ * Usage: 浏览噄1�7 fetch POST http://<dev-ip>:<port>/ota  (body = .otapkg 文件)
  */
 #include <string.h>
 #include "hc32f46_driver.h"
@@ -14,7 +14,7 @@
 #include "ota_security.h"
 
 #define OTA_HTTP_HDR_LEN     82
-#define OTA_HTTP_ERASE_BLK   (4096UL)    /* w25qxx 4KB 扇区擦 */
+#define OTA_HTTP_ERASE_BLK   (65536UL)   /* 64KB block erase */
 
 static uint32_t s_http_prog = 0, s_http_kv = 0;
 static uint32_t s_http_erased = 0;   /* 懒擦游标 */
@@ -34,17 +34,18 @@ static long http_get_content_length(const char *hdr, int hdrlen)
     return -1;
 }
 
-/* 懒擦除：按 4KB 扇区擦（摊在传输中，避免收完一次性擦的停顿） */
+/* 懒擦除：挄1�7 4KB 扇区擦（摊在传输中，避免收完丄1�7次�1�7�擦的停顿） */
 static int http_ensure_erased(uint32_t off, uint32_t len)
 {
-    uint32_t end = ((off + len + OTA_HTTP_ERASE_BLK - 1) / OTA_HTTP_ERASE_BLK) * OTA_HTTP_ERASE_BLK;
-    if (end <= s_http_erased)
+    (void)off; (void)len;
+    if (s_http_erased != 0)
         return 0;
-    for (uint32_t a = s_http_erased; a < end; a += OTA_HTTP_ERASE_BLK) {
-        W25QXX_Erase_Sector(OTA_QSPI_STAGE_BASE + a);
+    /* ���ӿ�ʼһ���Բ��������ݴ�����8 x 64KB�����հ���;���ٲ�������ͣ�ٵ�����λ��/W5100S ��ʱ */
+    for (uint32_t a = 0; a < OTA_QSPI_STAGE_SIZE; a += 65536UL) {
+        W25QXX_Erase_Block_64K(OTA_QSPI_STAGE_BASE + a);
     }
     W25QXX_Wait_Busy();
-    s_http_erased = end;
+    s_http_erased = 1;
     return 0;
 }
 
@@ -57,10 +58,10 @@ static int http_recv_body(int fd, long total)
         TRACE("ota_http: channel busy, reject\n");
         return -1;
     }
-    /* body 接收恢复阻塞模式 + 超时：非阻塞下 read 返回 0 会误判传输失败 */
+    /* body 接收恢复阻塞模式 + 超时：非阻塞丄1�7 read 返回 0 会误判传输失贄1�7 */
     {
         int blkmode = O_BLOCK;
-        int to = 2000;   /* 10s 收 body（单位 SYSTEM_TICK_DUR=5ms） */
+        int to = 6000;   /* 30s recv body (SYSTEM_TICK_DUR=5ms) */
         ioctl(fd, COMMON_INTERFACE_SET_ISBLOCK, &blkmode);
         ioctl(fd, COMMON_INTERFACE_SET_TIMEOUT, &to);
     }
@@ -86,6 +87,7 @@ static int http_recv_body(int fd, long total)
             return -1;
         }
         s_http_prog += (uint32_t)n;
+
         remain -= n;
         if (s_http_prog - s_http_kv >= 65536UL) {
             ota_set_progress(s_http_prog);
@@ -107,7 +109,7 @@ void http_handle_conn(int fd)
     int  hlen = 0, n;
     long total;
     int  blkmode = O_NONBLOCK;   /* 关键: socket 默认 O_BLOCK+timeout=-1 会无限等数据，header 必须非阻塞防卡死 */
-    int  hto = 400;              /* 2s 收 header（单位 SYSTEM_TICK_DUR=5ms） */
+    int  hto = 400;              /* 2s 攄1�7 header（单佄1�7 SYSTEM_TICK_DUR=5ms＄1�7 */
 
     ioctl(fd, COMMON_INTERFACE_SET_ISBLOCK, &blkmode);
     ioctl(fd, COMMON_INTERFACE_SET_TIMEOUT, &hto);

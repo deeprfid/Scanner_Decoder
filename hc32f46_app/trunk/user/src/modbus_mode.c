@@ -890,7 +890,7 @@ void set_tagfilter(mb_regs_st *regsst)
 			tf.bank, tf.startaddr, tf.flen, 1 - tf.isInvert);
 #ifdef _DEBUG
 		TRACE("fdata:");
-		for (i = 0; i < maskbytes; ++i)
+		for (uint16_t i = 0; i < maskbytes; ++i)
 			TRACE("%02X ", tf.fdata[i]);
 		TRACE("\n");
 #endif
@@ -2068,7 +2068,7 @@ void cont_write(int s, uint8 *buf, uint32 len)
 		osKernelUnlock();
 #ifdef _DEBUG		
 		TRACE("uart send resp:");
-		for (i = 0; i < len; ++i)
+		for (uint16_t i = 0; i < len; ++i)
 			TRACE("%02X ", buf[i]);
 		TRACE("\n");
 #endif
@@ -2082,7 +2082,7 @@ void cont_write(int s, uint8 *buf, uint32 len)
 		write(s, g_mb_tcp_sendbuf, len+4);
 #ifdef _DEBUG
 		TRACE("tcp send resp:");
-		for (i = 0; i < len+4; ++i)
+		for (uint16_t i = 0; i < len+4; ++i)
 			TRACE("%02X ", g_mb_tcp_sendbuf[i]);
 		TRACE("\n");
 #endif
@@ -2112,7 +2112,7 @@ void modbus_func(int fd, uint8 *rbuf)
 		}
 #ifdef _DEBUG
 		TRACE("tcp recv cmd:");
-		for (i = 0; i < nlast+6; ++i)
+		for (uint16_t i = 0; i < nlast+6; ++i)
 			TRACE("%02X ", rbuf[i]);
 		TRACE("\n");
 #endif		
@@ -2172,7 +2172,7 @@ void modbus_func(int fd, uint8 *rbuf)
 		gModBusAddr = gPMbCurUartSet->address;
 #ifdef _DEBUG
 		TRACE("uart recv cmd:");
-		for (i = 0; i < dlen+2; ++i)
+		for (uint16_t i = 0; i < dlen+2; ++i)
 			TRACE("%02X ", rbuf[i]);
 		TRACE("\n");
 #endif

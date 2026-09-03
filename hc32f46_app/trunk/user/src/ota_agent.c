@@ -1,7 +1,7 @@
 /**
  * @file ota_agent.c
- * @brief F460 升级 Agent：收包完成 → 校验 → mark_ready → 复位进 boot commit
- *        （F460 无主动下载 ota_download；HTTP 通道收完包直接走这里）
+ * @brief F460 升级 Agent：收包完戄1�7 ↄ1�7 校验 ↄ1�7 mark_ready ↄ1�7 复位迄1�7 boot commit
+ *        （F460 无主动下轄1�7 ota_download；HTTP 通道收完包直接走这里＄1�7
  */
 #include <string.h>
 #include "hc32f46_driver.h"
@@ -17,10 +17,10 @@
 #define OTA_HDR_PAYLOAD_OFF 10
 #define OTA_HDR_CRC_OFF     14
 
-/* v9.81p: 新固件待自检确认状态 */
+/* v9.81p: 新固件待自检确认状�1�7�1�7 */
 static int s_pending_confirm = 0;
 
-/* 读暂存包头 + 校验 payload CRC + 验签；输出固件长度与版本 */
+/* 读暂存包处1�7 + 校验 payload CRC + 验签；输出固件长度与版本 */
 static int verify_staged_pkg(uint32_t *fw_len, uint32_t *version)
 {
     uint8_t hdr[OTA_HEADER_LEN];
@@ -49,7 +49,7 @@ static int verify_staged_pkg(uint32_t *fw_len, uint32_t *version)
     return 0;
 }
 
-/* F460: HTTP 通道收完包后调用（替代 F4A0 的 ota_agent_run(url) 主动下载） */
+/* F460: HTTP 通道收完包后调用（替仄1�7 F4A0 的1�7 ota_agent_run(url) 主动下载＄1�7 */
 int ota_agent_finish(void)
 {
     uint32_t fw_len = 0, version = 0;
@@ -71,12 +71,11 @@ int ota_agent_finish(void)
 
 void ota_agent_boot(void)
 {
-    /* F460: bootloader 处理 NEED_COMMIT；App 启动时只需检查 NEED_CONFIRM */
+    /* bootloader handles NEED_COMMIT; app checks NEED_CONFIRM (self-test) */
     ota_state_t st = ota_state_run();
     if (st == OTA_STATE_READY)
         s_pending_confirm = 1;
 }
-
 void ota_agent_confirm(void)
 {
     if (s_pending_confirm) {
@@ -86,3 +85,5 @@ void ota_agent_confirm(void)
         s_pending_confirm = 0;
     }
 }
+
+

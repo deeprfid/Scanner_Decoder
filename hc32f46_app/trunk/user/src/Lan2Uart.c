@@ -7,6 +7,7 @@
 #include "mp_pool.h"
 #include "reader_init.h"
 #include "http_reader_api.h"
+#include "ota_agent.h"   /* OTA confirm */
 
 volatile int gIsModAPICtrl = 0;
 volatile int gIsUnlockUart0 = 0;
@@ -445,6 +446,7 @@ void user_main_passive(void)
 
         led_on();
         TRACE("after init_rfidmodle:%lld\n", getSysTick());
+        ota_agent_confirm();    /* OTA: new fw self-check ok */
     }
     else
     {
