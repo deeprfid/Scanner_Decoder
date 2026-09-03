@@ -91,6 +91,7 @@ static void qspi_wait_busy(void)
 /**
  * @brief 发送指令+可选数据，随后收 rxLen 字节（读 DCOM 自带时钟，逐字节收）
  */
+#if (BOOT_QSPI_DIAG == 1)   /* qspi_cmd_then_read 仅自检用 */
 static void qspi_cmd_then_read(const uint8_t *pu8Tx, uint32_t u32TxLen,
                                uint8_t *pu8Rx, uint32_t u32RxLen)
 {
@@ -105,8 +106,10 @@ static void qspi_cmd_then_read(const uint8_t *pu8Tx, uint32_t u32TxLen,
     }
     QSPI_ExitDirectCommMode();
 }
+#endif /* BOOT_QSPI_DIAG (qspi_cmd_then_read) */
 
 /* 读 SR1（验证 WEL/busy 用） */
+#if (BOOT_QSPI_DIAG == 1)   /* qspi_read_sr1 仅自检用 */
 static uint8_t qspi_read_sr1(void)
 {
     uint8_t u8Sr;
@@ -117,6 +120,7 @@ static uint8_t qspi_read_sr1(void)
     QSPI_ExitDirectCommMode();
     return u8Sr;
 }
+#endif /* BOOT_QSPI_DIAG (qspi_read_sr1) */
 
 /* 4KB 扇区擦除（需先 WREN） */
 static void qspi_erase_4k(uint32_t u32Addr)
