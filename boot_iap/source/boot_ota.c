@@ -246,6 +246,8 @@ void BOOT_OTA_Run(void)
 
     printf("=========== BOOT OTA ===========\r\n");
 
+    boot_qspi_diag();   /* QSPI 硬件自检（验证完可移除/关闭） */
+
     if (boot_ota_verify(&u32FwLen, &u32CrcExp) == 0) {
         printf("BOOT: staging OK len=%u crc=%08X, commit...\r\n",
                (unsigned int)u32FwLen, (unsigned int)u32CrcExp);

@@ -12,5 +12,6 @@
 int  boot_qspi_init(void);                       /* 初始化 QSPI + 设置 W25Q64 QE(quad) */
 int  boot_qspi_read(uint32_t u32Addr, uint8_t *pu8Buf, uint32_t u32Size);
 void boot_qspi_invalidate_stage(void);           /* 清暂存区 magic（写 4 字节 0x00） */
+void boot_qspi_diag(void);                       /* 硬件自检：JEDEC/QE/XIP读/擦写回读 */
 
 #endif /* __BOOT_QSPI_H__ */
