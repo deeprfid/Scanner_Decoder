@@ -324,6 +324,7 @@ int boot_qspi_read(uint32_t u32Addr, uint8_t *pu8Buf, uint32_t u32Size)
     return 0;
 }
 
+
 #if (BOOT_QSPI_DIAG == 1)
 /**
  * @brief QSPI 硬件自检（printf）：JEDEC ID / QE / XIP 读 / 最后扇区擦写回读
@@ -465,8 +466,8 @@ void boot_qspi_diag(void)
     qspi_erase_4k(BOOT_QSPI_TEST_SECTOR);   /* 还原为 FF */
     printf("QSPI diag done\r\n");
 }
-#endif /* BOOT_QSPI_DIAG */
 
+#endif /* BOOT_QSPI_DIAG */
 /******************************************************************************
  * EOF
  *****************************************************************************/
