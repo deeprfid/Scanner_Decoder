@@ -14,6 +14,8 @@
  ******************************************************************************/
 #include "hc32_ll.h"
 #include <stdio.h>
+#include "boot_ota.h"
+#include "boot_qspi.h"
 
 /*******************************************************************************
  * Local pre-processor symbols/macros ('#define')
@@ -181,17 +183,14 @@ void PrintResetCause(void)
  */
 int32_t main(void)
 {
-    uint32_t u32Cnt = 0UL;
-
-    /* Disable SysTick interrupt (TICKINT=0) - boot does not need SysTick */
-    SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
-    SysTick->CTRL  = 0UL;
-
     /* MCU Peripheral registers write unprotected */
     LL_PERIPH_WE(LL_PERIPH_SEL);
 
     /* System clock: MPLL@200MHz */
     SystemClockConfig();
+
+    /* QSPI(W25Q64) 初始化：必须在 LL_PERIPH_WP 之前（GPIO/FCG 写保护） */
+    (void)boot_qspi_init();
 
     /* 初始化 printf 设备：USART3 @115200 */
     (void)LL_PrintfInit(PRINTF_USART, PRINTF_BAUDRATE, PrintfPreinit);
@@ -204,16 +203,11 @@ int32_t main(void)
     /* 立即喂狗（对照 App/driver main） */
     SWDT_FeedDog();
 
+    /* OTA 引导（不返回）：校验 QSPI 暂存 -> commit 0x10000 -> 跳 App / 死循环 */
+    BOOT_OTA_Run();
+
     for (;;) {
-        printf("BOOT alive %u\r\n", (unsigned int)u32Cnt);
-        SWDT_FeedDog();
-        u32Cnt++;
-        {
-            volatile uint32_t dly = 2000UL;
-            while (dly--) {
-                ;
-            }
-        }
+        ;   /* 不应到达 */
     }
 }
 

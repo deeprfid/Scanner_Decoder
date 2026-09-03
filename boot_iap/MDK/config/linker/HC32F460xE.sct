@@ -18,5 +18,11 @@ LR_IROM1 0x00000000 0x00080000  {    ; load region size_region
     RW_IRAMB 0x200F0000 0x00001000  {  ; RW data
         .ANY (+RW +ZI)
     }
+    RW_RAMCODE 0x20018000 0x00008000  {  ; OTA commit 代码执行区（片内Flash擦/写期间取指必须来自RAM）
+        hc32_ll_efm.o (+RO)
+        flash.o (+RO)
+        boot_ota.o (+RO)
+        boot_qspi.o (+RO)
+    }
 }
 

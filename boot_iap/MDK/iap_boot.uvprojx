@@ -413,6 +413,16 @@
               <FileType>1</FileType>
               <FilePath>../source/flash.c</FilePath>
             </File>
+            <File>
+              <FileName>boot_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\boot_qspi.c</FilePath>
+            </File>
+            <File>
+              <FileName>boot_ota.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\boot_ota.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -482,6 +492,11 @@
               <FileName>hc32_ll_rmu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\hc32_ll_rmu.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\hc32_ll_qspi.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -914,6 +929,16 @@
               <FileType>1</FileType>
               <FilePath>../source/flash.c</FilePath>
             </File>
+            <File>
+              <FileName>boot_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\boot_qspi.c</FilePath>
+            </File>
+            <File>
+              <FileName>boot_ota.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\boot_ota.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -983,6 +1008,11 @@
               <FileName>hc32_ll_rmu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\hc32_ll_rmu.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_qspi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\hc32_ll_qspi.c</FilePath>
             </File>
           </Files>
         </Group>

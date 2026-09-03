@@ -76,7 +76,7 @@ extern "C"
 #define LL_MPU_ENABLE                               (DDL_OFF)
 #define LL_OTS_ENABLE                               (DDL_OFF)
 #define LL_PWC_ENABLE                               (DDL_ON)
-#define LL_QSPI_ENABLE                              (DDL_OFF)
+#define LL_QSPI_ENABLE                              (DDL_ON)
 #define LL_RMU_ENABLE                               (DDL_ON)
 #define LL_RTC_ENABLE                               (DDL_OFF)
 #define LL_SDIOC_ENABLE                             (DDL_OFF)
