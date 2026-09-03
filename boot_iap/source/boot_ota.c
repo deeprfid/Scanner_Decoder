@@ -1,12 +1,17 @@
 /**
  *******************************************************************************
  * @file  boot_ota.c
- * @brief F460 Bootloader OTA：暂存校验(CRC32) -> commit 片内 0x10000 -> 跳 App。
+ * @brief F460 Bootloader OTA（single-bak）：状态区驱动 commit/回滚 + 跳 App。
  *
- *   烧写期间片内 Flash 忙，执行代码不能依赖 Flash 取指：
- *   boot_ota.o / flash.o / hc32_ll_efm.o 由 scatter 放入 RAM 执行区
- *   （HC32F460xE.sct 的 RW_RAMCODE @0x20018000）。
- *   校验 CRC32（IEEE 0xEDB88320，与 tools/ota_pack.py zlib.crc32 一致）。
+ *   契约与 App ota_layout.h / 归档 ota_boot_single.c 一致：
+ *     App 下载完 -> 写暂存区(0x0) + 状态区 NEED_COMMIT -> 复位
+ *     boot: NEED_COMMIT -> 校验暂存CRC -> 片内旧固件备份到 QSPI 0x80000
+ *                          -> 暂存写片内 0x10000 -> 状态 NEED_CONFIRM -> 跳新固件
+ *           NEED_CONFIRM -> boot_count++ 超限 -> 从备份恢复 -> 清状态 -> 跳 App
+ *     App 自检成功 -> ota_agent_confirm 清状态位
+ *
+ *   烧写期间片内 Flash 忙：boot_ota.o / flash.o / hc32_ll_efm.o 由 scatter 放 RAM
+ *   （HC32F460xE.sct RW_RAMCODE @0x20018000）。
  *******************************************************************************
  */
 #include <stdio.h>
@@ -26,7 +31,7 @@ extern void SWDT_FeedDog(void);
 static uint32_t s_au32Buf[256];
 #define COMMIT_BUF_SIZE   (1024UL)
 
-/* ---- CRC32 查表（IEEE 0xEDB88320） ---- */
+/* ---- CRC32 查表（IEEE 0xEDB88320，与 ota_pack.py zlib.crc32 一致） ---- */
 static const uint32_t s_au32CrcTab[256] = {
     0x0UL,0x77073096UL,0xEE0E612CUL,0x990951BAUL,0x76DC419UL,0x706AF48FUL,0xE963A535UL,0x9E6495A3UL,
     0xEDB8832UL,0x79DCB8A4UL,0xE0D5E91EUL,0x97D2D988UL,0x9B64C2BUL,0x7EB17CBDUL,0xE7B82D07UL,0x90BF1D91UL,
@@ -78,16 +83,61 @@ static uint32_t boot_rd_le32(const uint8_t *pu8)
            ((uint32_t)pu8[3] << 24U);
 }
 
-/**
- * @brief 校验 QSPI 暂存包：magic + 长度 + payload CRC32
- * @param [out] pu32FwLen   有效载荷长度（不含 82B 包头）
- * @param [out] pu32CrcExp  包头声明的 payload CRC32
- * @retval 0: 有效；<0: 无效
- */
-static int boot_ota_verify(uint32_t *pu32FwLen, uint32_t *pu32CrcExp)
+/* ---- 状态区 ---- */
+static void state_write_raw(const boot_state_t *pstcState)
+{
+    (void)boot_qspi_erase(BOOT_QSPI_STATE_BASE, BOOT_QSPI_STATE_SIZE);
+    (void)boot_qspi_write(BOOT_QSPI_STATE_BASE, (const uint8_t *)pstcState,
+                          sizeof(boot_state_t));
+    SWDT_FeedDog();
+}
+
+/* 写状态（自动补 crc32 over [0,20)） */
+static void state_write(const boot_state_t *pstcState)
+{
+    boot_state_t stcTmp = *pstcState;
+
+    stcTmp.crc32 = boot_crc32_update(0xFFFFFFFFUL, (const uint8_t *)pstcState,
+                                      BOOT_STATE_CRC_LEN) ^ 0xFFFFFFFFUL;
+    state_write_raw(&stcTmp);
+}
+
+/* 读状态；无效(magic/crc)返回非 0 */
+static int state_read(boot_state_t *pstcState)
+{
+    if (pstcState == NULL) {
+        return -1;
+    }
+    if (boot_qspi_read(BOOT_QSPI_STATE_BASE, (uint8_t *)pstcState, sizeof(boot_state_t)) != 0) {
+        return -1;
+    }
+    if (pstcState->magic != BOOT_FLAG_MAGIC) {
+        return -1;
+    }
+    if (pstcState->crc32 !=
+        (boot_crc32_update(0xFFFFFFFFUL, (const uint8_t *)pstcState,
+                           BOOT_STATE_CRC_LEN) ^ 0xFFFFFFFFUL)) {
+        return -1;
+    }
+    return 0;
+}
+
+/* 清状态（写 magic-only，flags=0 —— 与归档语义一致：无动作位即正常跑） */
+static void state_clear(void)
+{
+    boot_state_t stcTmp;
+
+    memset(&stcTmp, 0, sizeof(stcTmp));
+    stcTmp.magic = BOOT_FLAG_MAGIC;
+    state_write(&stcTmp);
+}
+
+/* ---- 暂存包校验：magic + 长度 + payload CRC32 ---- */
+static int verify_staged(uint32_t *pu32FwLen, uint32_t *pu32Version)
 {
     uint8_t au8Hdr[BOOT_OTA_HDR_LEN];
     uint32_t u32Len;
+    uint32_t u32CrcExp;
     uint32_t u32Crc;
     uint32_t u32Off;
     uint32_t u32N;
@@ -98,16 +148,18 @@ static int boot_ota_verify(uint32_t *pu32FwLen, uint32_t *pu32CrcExp)
     }
     if ((au8Hdr[0] != BOOT_OTA_MAGIC0) || (au8Hdr[1] != BOOT_OTA_MAGIC1) ||
         (au8Hdr[2] != BOOT_OTA_MAGIC2) || (au8Hdr[3] != BOOT_OTA_MAGIC3)) {
-        return -1;   /* 无暂存包（芯片未焊 / 未写入） */
-    }
-    u32Len    = boot_rd_le32(&au8Hdr[BOOT_OTA_LEN_OFF]);
-    *pu32CrcExp = boot_rd_le32(&au8Hdr[BOOT_OTA_CRC_OFF]);
-    if ((u32Len == 0UL) || (u32Len > BOOT_APP_MAX_SIZE) ||
-        ((BOOT_OTA_HDR_LEN + u32Len) > BOOT_QSPI_STAGE_MAX)) {
         return -1;
     }
-    /* CRC over payload [82, 82+len) */
-    u32Crc   = 0xFFFFFFFFUL;
+    *pu32Version = boot_rd_le32(&au8Hdr[BOOT_OTA_VER_OFF]);
+    u32Len       = boot_rd_le32(&au8Hdr[BOOT_OTA_LEN_OFF]);
+    u32CrcExp    = boot_rd_le32(&au8Hdr[BOOT_OTA_CRC_OFF]);
+    if ((u32Len == 0UL) || (u32Len > BOOT_APP_MAX_SIZE) ||
+        ((BOOT_OTA_HDR_LEN + u32Len) > BOOT_QSPI_STAGE_SIZE)) {
+        return -1;
+    }
+    *pu32FwLen = u32Len;
+
+    u32Crc    = 0xFFFFFFFFUL;
     u32Remain = u32Len;
     for (u32Off = BOOT_OTA_HDR_LEN; u32Remain > 0UL; u32Off += u32N) {
         u32N = (u32Remain > COMMIT_BUF_SIZE) ? COMMIT_BUF_SIZE : u32Remain;
@@ -118,42 +170,35 @@ static int boot_ota_verify(uint32_t *pu32FwLen, uint32_t *pu32CrcExp)
         u32Remain -= u32N;
     }
     u32Crc ^= 0xFFFFFFFFUL;
-    if (u32Crc != *pu32CrcExp) {
-        return -2;
-    }
-    *pu32FwLen = u32Len;
-    return 0;
+    return (u32Crc == u32CrcExp) ? 0 : -2;
 }
 
-/**
- * @brief commit：擦 0x10000 起整扇区 -> 从 QSPI 流式写片内 Flash（每块喂狗）
- * @retval 0: 成功；<0: 失败（暂存保留，下次上电重试）
- */
-static int boot_ota_commit(uint32_t u32FwLen)
+/* ---- 片内 App 区写入（RAM 执行）：u32Addr 8KB 扇区对齐由调用方保证 ---- */
+static int app_region_write(uint32_t u32Addr, uint32_t u32Len,
+                            int32_t (*pfnRead)(uint32_t, uint8_t *, uint32_t))
 {
-    uint32_t u32EraseSize;
     uint32_t u32Off;
     uint32_t u32N;
     uint32_t u32Remain;
+    uint32_t u32EraseSize;
     int32_t i32Ret;
 
-    u32EraseSize = (u32FwLen + FLASH_SECTOR_SIZE - 1UL) & ~(FLASH_SECTOR_SIZE - 1UL);
-    printf("BOOT: erase %u B @0x%08X\r\n", (unsigned int)u32EraseSize, (unsigned int)BOOT_APP_BASE);
+    /* 先整区擦除（8KB 扇区，向上取整） */
+    u32EraseSize = (u32Len + FLASH_SECTOR_SIZE - 1UL) & ~(FLASH_SECTOR_SIZE - 1UL);
     SWDT_FeedDog();
-    if (LL_OK != FLASH_EraseSector(BOOT_APP_BASE, u32EraseSize)) {
+    if (LL_OK != FLASH_EraseSector(u32Addr, u32EraseSize)) {
         return -1;
     }
     SWDT_FeedDog();
 
-    u32Remain = u32FwLen;
+    u32Remain = u32Len;
     u32Off    = 0UL;
     while (u32Remain > 0UL) {
         u32N = (u32Remain > COMMIT_BUF_SIZE) ? COMMIT_BUF_SIZE : u32Remain;
-        if (boot_qspi_read(BOOT_QSPI_STAGE_BASE + BOOT_OTA_HDR_LEN + u32Off,
-                           (uint8_t *)s_au32Buf, u32N) != 0) {
+        if (pfnRead(u32Off, (uint8_t *)s_au32Buf, u32N) != 0) {
             return -1;
         }
-        i32Ret = FLASH_WriteData(BOOT_APP_BASE + u32Off, (uint8_t *)s_au32Buf, u32N);
+        i32Ret = FLASH_WriteData(u32Addr + u32Off, (uint8_t *)s_au32Buf, u32N);
         if (LL_OK != i32Ret) {
             printf("BOOT: program fail off=%u ret=%d\r\n", (unsigned int)u32Off, (int)i32Ret);
             return -1;
@@ -165,35 +210,96 @@ static int boot_ota_commit(uint32_t u32FwLen)
     return 0;
 }
 
-/**
- * @brief commit 后回读校验：片内 0x10000 内容 CRC 与包头一致（防写入损坏）
- * @retval 0: 一致
- */
-static int boot_ota_verify_flash(uint32_t u32FwLen, uint32_t u32CrcExp)
+/* 从暂存区读 payload（跳 82B 头） */
+static int32_t read_from_stage(uint32_t u32Off, uint8_t *pu8Buf, uint32_t u32Len)
 {
-    uint32_t u32Crc;
+    return boot_qspi_read(BOOT_QSPI_STAGE_BASE + BOOT_OTA_HDR_LEN + u32Off, pu8Buf, u32Len);
+}
+
+/* 从片内 App 区读（备份用） */
+static int32_t read_from_app(uint32_t u32Off, uint8_t *pu8Buf, uint32_t u32Len)
+{
+    memcpy(pu8Buf, (const void *)(BOOT_APP_BASE + u32Off), u32Len);
+    return 0;
+}
+
+/* 从备份区读（回滚用） */
+static int32_t read_from_backup(uint32_t u32Off, uint8_t *pu8Buf, uint32_t u32Len)
+{
+    return boot_qspi_read(BOOT_QSPI_BACKUP_BASE + u32Off, pu8Buf, u32Len);
+}
+
+/* ---- commit：备份旧固件 -> 暂存写片内 -> NEED_CONFIRM ---- */
+static int commit_new_fw(uint32_t u32FwLen, uint32_t u32Version)
+{
     uint32_t u32Off;
     uint32_t u32N;
     uint32_t u32Remain;
+    boot_state_t stcState;
+    int32_t i32Ret;
 
-    /* 清 cache，保证回读的不是旧数据 */
-    EFM_CacheRamReset(ENABLE);
-    EFM_CacheRamReset(DISABLE);
+    printf("BOOT: NEED_COMMIT ver=0x%08X len=%u\r\n", (unsigned int)u32Version,
+           (unsigned int)u32FwLen);
 
-    u32Crc    = 0xFFFFFFFFUL;
+    /* 1) 片内当前 App (fw_len 字节) -> QSPI 备份区（先整区擦除） */
+    printf("BOOT: backup current app -> QSPI 0x%06X\r\n", (unsigned int)BOOT_QSPI_BACKUP_BASE);
+    if (boot_qspi_erase(BOOT_QSPI_BACKUP_BASE, BOOT_QSPI_BACKUP_SIZE) != 0) {
+        return -1;
+    }
     u32Remain = u32FwLen;
-    for (u32Off = 0UL; u32Remain > 0UL; u32Off += u32N) {
+    u32Off    = 0UL;
+    while (u32Remain > 0UL) {
         u32N = (u32Remain > COMMIT_BUF_SIZE) ? COMMIT_BUF_SIZE : u32Remain;
-        memcpy((uint8_t *)s_au32Buf, (const void *)(BOOT_APP_BASE + u32Off), u32N);
-        u32Crc = boot_crc32_update(u32Crc, (uint8_t *)s_au32Buf, u32N);
+        if (read_from_app(u32Off, (uint8_t *)s_au32Buf, u32N) != 0) {
+            return -1;
+        }
+        if (boot_qspi_write(BOOT_QSPI_BACKUP_BASE + u32Off, (const uint8_t *)s_au32Buf,
+                            u32N) != 0) {
+            return -1;
+        }
+        SWDT_FeedDog();
+        u32Off    += u32N;
         u32Remain -= u32N;
     }
-    u32Crc ^= 0xFFFFFFFFUL;
-    return (u32Crc == u32CrcExp) ? 0 : -1;
+
+    /* 2) 暂存(跳 82B 头) -> 片内 0x10000（EFM 需先解锁） */
+    LL_PERIPH_WE(BOOT_PERIPH_WE_SEL);
+    EFM_FWMC_Cmd(ENABLE);
+    printf("BOOT: write new fw -> internal flash\r\n");
+    i32Ret = app_region_write(BOOT_APP_BASE, u32FwLen, read_from_stage);
+    EFM_FWMC_Cmd(DISABLE);
+    LL_PERIPH_WP(BOOT_PERIPH_WE_SEL);
+    if (i32Ret != 0) {
+        return -1;
+    }
+
+    /* 3) 状态 NEED_CONFIRM（新固件自检） */
+    memset(&stcState, 0, sizeof(stcState));
+    stcState.magic      = BOOT_FLAG_MAGIC;
+    stcState.flags      = BOOT_FLAG_NEED_CONFIRM;
+    stcState.size       = u32FwLen;
+    stcState.version    = u32Version;
+    stcState.boot_count = 0UL;
+    state_write(&stcState);
+    printf("BOOT: commit ok -> NEED_CONFIRM\r\n");
+    return 0;
+}
+
+/* ---- 回滚：备份区 -> 片内，清状态 ---- */
+static void rollback(uint32_t u32FwLen)
+{
+    printf("BOOT: rollback from backup\r\n");
+    LL_PERIPH_WE(BOOT_PERIPH_WE_SEL);
+    EFM_FWMC_Cmd(ENABLE);
+    (void)app_region_write(BOOT_APP_BASE, u32FwLen, read_from_backup);
+    EFM_FWMC_Cmd(DISABLE);
+    LL_PERIPH_WP(BOOT_PERIPH_WE_SEL);
+    state_clear();
+    printf("BOOT: rollback done\r\n");
 }
 
 /**
- * @brief 跳转 App（照官方 iap_ymodem_boot：先降频回 MRC、关 PLL/XTAL，再设 MSP）
+ * @brief 跳转 App（照官方 iap_ymodem_boot：先降频回 MRC、关 PLL/XTAL，再设 MSP+VTOR）
  * @note  不返回；App 无效则死循环（等外部复位/烧录）
  */
 static void boot_ota_jump_app(void)
@@ -241,32 +347,58 @@ static void boot_ota_jump_app(void)
  */
 void BOOT_OTA_Run(void)
 {
-    uint32_t u32FwLen   = 0UL;
-    uint32_t u32CrcExp  = 0UL;
+    boot_state_t stcState;
+    uint32_t u32FwLen  = 0UL;
+    uint32_t u32Ver    = 0UL;
+    int32_t i32Verify;
 
     printf("=========== BOOT OTA ===========\r\n");
 
-    boot_qspi_diag();   /* QSPI 硬件自检（验证完可移除/关闭） */
+#if (BOOT_QSPI_DIAG == 1)
+    boot_qspi_diag();
+#endif
 
-    if (boot_ota_verify(&u32FwLen, &u32CrcExp) == 0) {
-        printf("BOOT: staging OK len=%u crc=%08X, commit...\r\n",
-               (unsigned int)u32FwLen, (unsigned int)u32CrcExp);
-        if (boot_ota_commit(u32FwLen) == 0) {
-            printf("BOOT: commit done, readback verify...\r\n");
-            if (boot_ota_verify_flash(u32FwLen, u32CrcExp) == 0) {
-                printf("BOOT: flash verify OK, invalidate staging\r\n");
-                boot_qspi_invalidate_stage();
-            } else {
-                printf("BOOT: flash verify FAIL (keep staging, retry next boot)\r\n");
-            }
-        } else {
-            printf("BOOT: commit FAIL (keep staging, retry next boot)\r\n");
-        }
-    } else {
-        printf("BOOT: no pending package\r\n");
+    if (state_read(&stcState) != 0) {
+        /* 无有效状态 -> 正常跳 App */
+        boot_ota_jump_app();
+        return;
     }
 
-    boot_ota_jump_app();   /* 不返回 */
+    if (0UL != (stcState.flags & BOOT_FLAG_NEED_COMMIT)) {
+        i32Verify = verify_staged(&u32FwLen, &u32Ver);
+        if (i32Verify != 0) {
+            printf("BOOT: staged verify FAIL(%d), clear flag, keep old app\r\n", (int)i32Verify);
+            state_clear();
+            boot_ota_jump_app();
+            return;
+        }
+        if (commit_new_fw(u32FwLen, u32Ver) != 0) {
+            printf("BOOT: commit FAIL (keep NEED_COMMIT, retry next boot)\r\n");
+            boot_ota_jump_app();   /* 旧 App 可能已部分损坏；下次上电重试 commit */
+            return;
+        }
+        boot_ota_jump_app();   /* 跳新固件自检（NEED_CONFIRM 在 commit 内已置） */
+        return;
+    }
+
+    if (0UL != (stcState.flags & BOOT_FLAG_NEED_CONFIRM)) {
+        stcState.boot_count++;
+        if (stcState.boot_count > BOOT_MAX_BOOT_COUNT) {
+            printf("BOOT: self-test fail, boot_count=%u exceeded -> rollback\r\n",
+                   (unsigned int)stcState.boot_count);
+            rollback(stcState.size);
+            boot_ota_jump_app();
+            return;
+        }
+        state_write(&stcState);
+        printf("BOOT: run new fw self-test boot_count=%u\r\n",
+               (unsigned int)stcState.boot_count);
+        boot_ota_jump_app();
+        return;
+    }
+
+    /* 状态有效但无动作位（App 已确认/清位） */
+    boot_ota_jump_app();
 }
 
 /******************************************************************************

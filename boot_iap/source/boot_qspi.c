@@ -133,30 +133,98 @@ static void qspi_erase_4k(uint32_t u32Addr)
     qspi_wait_busy();
 }
 
-/* 页编程（≤256B；需先 WREN） */
-static void qspi_program(uint32_t u32Addr, const uint8_t *pu8Data, uint32_t u32Len)
+/* 页编程单页（≤256B 且不跨 256B 页边界；需先 WREN） */
+static void qspi_program_page(uint32_t u32Addr, const uint8_t *pu8Data, uint32_t u32Len)
 {
     uint8_t u8Wren = W25Q_WRITE_ENABLE;
-    uint8_t au8Hdr[4];
+    uint8_t au8Buf[260];
     uint32_t i;
-    uint8_t au8Buf[4 + BOOT_QSPI_TEST_DATA];
 
-    if (u32Len > (sizeof(au8Buf) - 4UL)) {
+    if ((u32Len == 0UL) || (u32Len > 256UL)) {
         return;
     }
     qspi_cmd(&u8Wren, 1U);
-    au8Hdr[0] = W25Q_PAGE_PROGRAM;
-    au8Hdr[1] = (uint8_t)(u32Addr >> 16U);
-    au8Hdr[2] = (uint8_t)(u32Addr >> 8U);
-    au8Hdr[3] = (uint8_t)(u32Addr);
-    for (i = 0UL; i < 4UL; i++) {
-        au8Buf[i] = au8Hdr[i];
-    }
+    au8Buf[0] = W25Q_PAGE_PROGRAM;
+    au8Buf[1] = (uint8_t)(u32Addr >> 16U);
+    au8Buf[2] = (uint8_t)(u32Addr >> 8U);
+    au8Buf[3] = (uint8_t)(u32Addr);
     for (i = 0UL; i < u32Len; i++) {
         au8Buf[4UL + i] = pu8Data[i];
     }
     qspi_cmd(au8Buf, 4UL + u32Len);
     qspi_wait_busy();
+}
+
+/* 页编程（自动按 256B 页边界分页） */
+static void qspi_program(uint32_t u32Addr, const uint8_t *pu8Data, uint32_t u32Len)
+{
+    while (u32Len > 0UL) {
+        uint32_t u32Room = 256UL - (u32Addr & 0xFFUL);
+        uint32_t u32N = (u32Len > u32Room) ? u32Room : u32Len;
+
+        qspi_program_page(u32Addr, pu8Data, u32N);
+        u32Addr += u32N;
+        pu8Data += u32N;
+        u32Len  -= u32N;
+    }
+}
+
+/**
+ * @brief 擦除 QSPI 区域（4KB 扇区粒度）
+ */
+int boot_qspi_erase(uint32_t u32Addr, uint32_t u32Size)
+{
+    uint32_t u32End;
+
+    if (u32Size == 0UL) {
+        return -1;
+    }
+    u32End = u32Addr + u32Size;
+    if (u32End > BOOT_QSPI_CHIP_SIZE) {
+        return -1;
+    }
+    for (u32Addr &= ~0x0FFFU; u32Addr < u32End; u32Addr += 4096UL) {
+        qspi_erase_4k(u32Addr);
+    }
+    return 0;
+}
+
+/**
+ * @brief 写 QSPI 区域（逐 4KB 扇区：擦除 + 256B 页编程）
+ * @note  调用方保证 u32Addr 4KB 对齐（状态区/备份区均对齐）
+ */
+int boot_qspi_write_region(uint32_t u32Addr, const uint8_t *pu8Src, uint32_t u32Size)
+{
+    uint32_t u32Off = 0UL;
+
+    if ((pu8Src == NULL) || (u32Size == 0UL)) {
+        return -1;
+    }
+    if ((u32Addr + u32Size) > BOOT_QSPI_CHIP_SIZE) {
+        return -1;
+    }
+    while (u32Off < u32Size) {
+        uint32_t u32SectAddr = u32Addr + u32Off;
+        uint32_t u32N = u32Size - u32Off;
+        uint32_t u32P = 0UL;
+
+        if (u32N > (4096UL - (u32SectAddr & 0xFFFUL))) {
+            u32N = 4096UL - (u32SectAddr & 0xFFFUL);
+        }
+        qspi_erase_4k(u32SectAddr & ~0xFFFUL);
+        while (u32P < u32N) {
+            uint32_t u32Room = 256UL - ((u32SectAddr + u32P) & 0xFFUL);
+            uint32_t u32Np = u32N - u32P;
+
+            if (u32Np > u32Room) {
+                u32Np = u32Room;
+            }
+            qspi_program_page(u32SectAddr + u32P, pu8Src + u32Off + u32P, u32Np);
+            u32P += u32Np;
+        }
+        u32Off += u32N;
+    }
+    return 0;
 }
 
 /**
@@ -207,6 +275,21 @@ int boot_qspi_init(void)
 }
 
 /**
+ * @brief 纯编程（不擦除；调用方先 boot_qspi_erase）。自动按 256B 页边界分页
+ */
+int boot_qspi_write(uint32_t u32Addr, const uint8_t *pu8Src, uint32_t u32Size)
+{
+    if ((pu8Src == NULL) || (u32Size == 0UL)) {
+        return -1;
+    }
+    if ((u32Addr + u32Size) > BOOT_QSPI_CHIP_SIZE) {
+        return -1;
+    }
+    qspi_program(u32Addr, pu8Src, u32Size);
+    return 0;
+}
+
+/**
  * @brief 直接指令标准读(0x03)任意 QSPI 地址（已验证路径，不依赖 XIP）
  * @note  0x03: instr + 3B 地址 + 连续读；读 DCOM 自带时钟
  */
@@ -235,29 +318,6 @@ int boot_qspi_read(uint32_t u32Addr, uint8_t *pu8Buf, uint32_t u32Size)
     }
     QSPI_ExitDirectCommMode();
     return 0;
-}
-
-/**
- * @brief 失效暂存区：把 0x600000 处 4 字节 "OTA1" 编程为 0x00（NOR 可 1->0，无需擦除）
- */
-void boot_qspi_invalidate_stage(void)
-{
-    uint8_t au8Cmd[8];
-
-    /* WRITE_ENABLE */
-    au8Cmd[0] = W25Q_WRITE_ENABLE;
-    qspi_cmd(au8Cmd, 1U);
-    /* PAGE_PROGRAM 0x02 + 24bit addr + 4 字节 0x00 */
-    au8Cmd[0] = W25Q_PAGE_PROGRAM;
-    au8Cmd[1] = (uint8_t)(BOOT_QSPI_STAGE_BASE >> 16U);
-    au8Cmd[2] = (uint8_t)(BOOT_QSPI_STAGE_BASE >> 8U);
-    au8Cmd[3] = (uint8_t)(BOOT_QSPI_STAGE_BASE);
-    au8Cmd[4] = 0x00U;
-    au8Cmd[5] = 0x00U;
-    au8Cmd[6] = 0x00U;
-    au8Cmd[7] = 0x00U;
-    qspi_cmd(au8Cmd, 8U);
-    qspi_wait_busy();
 }
 
 #if (BOOT_QSPI_DIAG == 1)
@@ -296,9 +356,9 @@ void boot_qspi_diag(void)
         u16DevId = (uint16_t)(((uint16_t)au8Jid[0] << 8U) | (uint16_t)au8Jid[1]);
         printf("QSPI DevID(90): %04X -> ", (unsigned)u16DevId);
         if (u16DevId == W25Q64_DEV_ID) {
-            printf("W25Q64 (8MB, 量产型)\r\n");
+            printf("W25Q64 (8MB, PROD)\r\n");
         } else if (u16DevId == W25Q128_DEV_ID) {
-            printf("W25Q128 (16MB, 临时)\r\n");
+            printf("W25Q128 (16MB, TEMP)\r\n");
         } else {
             printf("unknown\r\n");
         }
