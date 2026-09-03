@@ -24,3 +24,5 @@ DebugConfig/
 # misc
 *.pdb
 Thumbs.db
+# SDK reference docs (not needed)
+doc/
